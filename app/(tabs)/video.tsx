@@ -1,3 +1,5 @@
+// app/(tabs)/video.tsx - Updated with clean Sora 2 Pro integration
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
@@ -39,7 +41,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import ProfileHeader from '@/components/ProfileHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VideoGenerationService } from '@/utils/runware';
-import Sora2Test from '@/components/Sora2Test';
 
 // Generate a valid UUIDv4
 const generateUUIDv4 = (): string => {
@@ -72,7 +73,7 @@ const VIDEO_INSPIRATION_PROMPTS = [
   "Lava flowing down a volcanic slope creating new land"
 ];
 
-// Options de qualité disponibles
+// Updated video quality options with Sora 2 Pro as Ultra
 const VIDEO_QUALITY_OPTIONS = [
   {
     id: 'standard',
@@ -89,15 +90,29 @@ const VIDEO_QUALITY_OPTIONS = [
     ]
   },
   {
-    id: 'ultra',
-    name: 'Ultra',
-    emoji: '💎',
+    id: 'pro',
+    name: 'Pro',
+    emoji: '🚀',
     description: 'Veo 3 Fast HD',
     model: 'google:3@1',
     modelName: 'Google Veo 3 Fast',
     duration: 8,
     supportedFormats: [
       { id: 'landscape', name: 'Paysage', width: 1920, height: 1080, emoji: '🖥️' },
+    ]
+  },
+  {
+    id: 'ultra',
+    name: 'Ultra',
+    emoji: '💎',
+    description: 'Sora 2 Pro 720p',
+    model: 'sora-2-pro',
+    modelName: 'Sora 2 Pro',
+    duration: 10,
+    supportedFormats: [
+      { id: 'landscape', name: 'Paysage 720p', width: 1280, height: 720, emoji: '🖥️' },
+      { id: 'portrait', name: 'Portrait 720p', width: 720, height: 1280, emoji: '📱' },
+      { id: 'square', name: 'Carré 720p', width: 720, height: 720, emoji: '⬜' },
     ]
   },
 ];
@@ -138,16 +153,6 @@ export default function VideoGenerator() {
     return selectedQuality.supportedFormats || [];
   }, [selectedQuality]);
 
-  // Filtrer les options de qualité selon la présence d'une image de référence
-  const availableQualityOptions = useMemo(() => {
-    if (referenceImagePreview) {
-      // Si une image est importée, forcer Ultra uniquement
-      return VIDEO_QUALITY_OPTIONS.filter(option => option.id === 'ultra');
-    }
-    // Sinon, toutes les options sont disponibles
-    return VIDEO_QUALITY_OPTIONS;
-  }, [referenceImagePreview]);
-
   // S'assurer que le format vidéo sélectionné est disponible
   useEffect(() => {
     const isCurrentFormatAvailable = availableVideoFormats.some(format => format.id === selectedVideoFormat.id);
@@ -155,16 +160,6 @@ export default function VideoGenerator() {
       setSelectedVideoFormat(availableVideoFormats[0]);
     }
   }, [availableVideoFormats, selectedVideoFormat.id]);
-
-  // Forcer la sélection du modèle Ultra quand une image est importée
-  useEffect(() => {
-    if (referenceImagePreview) {
-      const ultraOption = VIDEO_QUALITY_OPTIONS.find(option => option.id === 'ultra');
-      if (ultraOption && selectedQuality.id !== 'ultra') {
-        setSelectedQuality(ultraOption);
-      }
-    }
-  }, [referenceImagePreview, selectedQuality.id]);
 
   useEffect(() => {
     videoService.current = new VideoGenerationService();
@@ -313,7 +308,7 @@ export default function VideoGenerator() {
       const qualityOption = VIDEO_QUALITY_OPTIONS.find(q => q.id === selectedQuality.id);
       const selectedModel = qualityOption?.model || 'bytedance:1@1';
       const modelName = qualityOption?.modelName || 'Seedance 1.0 Lite';
-      const videoDuration = selectedQuality.id === 'max' ? selectedDuration : (qualityOption?.duration || 5);
+      const videoDuration = qualityOption?.duration || 5;
       const videoWidth = selectedVideoFormat.width;
       const videoHeight = selectedVideoFormat.height;
 
@@ -529,15 +524,13 @@ export default function VideoGenerator() {
             <Film size={32} color="#FF6B35" />
             <Text style={styles.title}>Générateur Vidéo</Text>
           </View>
-          <Text style={styles.subtitle}>Créez des vidéos IA avec ByteDance</Text>
+          <Text style={styles.subtitle}>Standard • Pro • Ultra</Text>
         </View>
 
-        <Sora2Test />
-
-        {/* Note importante sur l'image de référence */}
+        {/* Note importante */}
         <View style={styles.noteContainer}>
           <Text style={styles.noteText}>
-            💡 Vous pouvez générer des vidéos avec juste un prompt ou ajouter une image de référence
+            💡 Standard: Rapide | Pro: HD Qualité | Ultra: Sora 2 Pro 720p
           </Text>
         </View>
 
@@ -550,7 +543,7 @@ export default function VideoGenerator() {
         {/* Section principale de saisie */}
         <View style={styles.inputSection}>
           <View style={styles.labelRow}>
-            <Text style={styles.label}>Image de référence (optionnel)</Text>
+            <Text style={styles.label}>Décrivez votre vidéo</Text>
             <TouchableOpacity style={styles.randomButton} onPress={handleRandomPrompt}>
               <RefreshCw size={16} color="#FF6B35" />
               <Text style={styles.randomButtonText}>Inspiration</Text>
@@ -571,40 +564,24 @@ export default function VideoGenerator() {
         {/* Sélection de la qualité */}
         <View style={styles.inputSection}>
           <Text style={styles.label}>Qualité de génération</Text>
-          {referenceImagePreview && (
-            <Text style={styles.forceUltraNote}>
-              💎 Modèle Ultra automatiquement sélectionné pour l'image-to-video
-            </Text>
-          )}
           <View style={styles.qualityContainer}>
-            {availableQualityOptions.map((quality) => (
+            {VIDEO_QUALITY_OPTIONS.map((quality) => (
               <TouchableOpacity
                 key={quality.id}
                 style={[
                   styles.qualityButton,
-                  selectedQuality.id === quality.id && styles.selectedQualityButton,
-                  referenceImagePreview && quality.id !== 'ultra' && styles.disabledQualityButton
+                  selectedQuality.id === quality.id && styles.selectedQualityButton
                 ]}
-                onPress={() => {
-                  // Empêcher la sélection d'autres modèles si une image est importée
-                  if (!referenceImagePreview || quality.id === 'ultra') {
-                    setSelectedQuality(quality);
-                  }
-                }}
-                disabled={referenceImagePreview && quality.id !== 'ultra'}
+                onPress={() => setSelectedQuality(quality)}
               >
                 <Text style={styles.qualityEmoji}>{quality.emoji}</Text>
                 <Text style={[
                   styles.qualityButtonText,
-                  selectedQuality.id === quality.id && styles.selectedQualityButtonText,
-                  referenceImagePreview && quality.id !== 'ultra' && styles.disabledQualityButtonText
+                  selectedQuality.id === quality.id && styles.selectedQualityButtonText
                 ]}>
                   {quality.name}
                 </Text>
-                <Text style={[
-                  styles.qualityDescription,
-                  referenceImagePreview && quality.id !== 'ultra' && styles.disabledQualityDescription
-                ]}>
+                <Text style={styles.qualityDescription}>
                   {quality.description}
                 </Text>
               </TouchableOpacity>
@@ -729,9 +706,10 @@ export default function VideoGenerator() {
         {/* Note d'avertissement */}
         <View style={styles.warningNote}>
           <Text style={styles.warningText}>
-            ⚠️ Les contenus inappropriés peuvent échouer et quand même consommer vos crédits.
+            ⚠️ Les contenus inappropriés peuvent échouer et consommer vos crédits.
           </Text>
         </View>
+
         {/* Affichage de la vidéo */}
         {(generatedVideo || isGenerating) && (
           <View style={styles.resultSection}>
@@ -892,7 +870,7 @@ export default function VideoGenerator() {
                   </Text>
                   <Text style={styles.videoInfoText}>
                     <Text style={styles.videoInfoLabel}>Résolution: </Text>
-                    {selectedVideoFormat.width}x{selectedVideoFormat.height} {selectedQuality.id === 'ultra' ? '(HD)' : '(SD)'}
+                    {selectedVideoFormat.width}x{selectedVideoFormat.height}
                   </Text>
                   <Text style={styles.videoInfoText}>
                     <Text style={styles.videoInfoLabel}>Qualité: </Text>
@@ -1006,27 +984,27 @@ const styles = StyleSheet.create({
   },
   qualityContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
   },
   qualityButton: {
     flex: 1,
     alignItems: 'center',
     backgroundColor: '#F8F8F8',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 2,
     borderColor: '#E5E5EA',
-    gap: 6,
+    gap: 4,
   },
   selectedQualityButton: {
     backgroundColor: '#FFF5F0',
     borderColor: '#FF6B35',
   },
   qualityEmoji: {
-    fontSize: 24,
+    fontSize: 20,
   },
   qualityButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: '#666666',
   },
@@ -1035,27 +1013,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   qualityDescription: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#999999',
     textAlign: 'center',
-  },
-  forceUltraNote: {
-    fontSize: 12,
-    color: '#B8860B',
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  disabledQualityButton: {
-    opacity: 0.4,
-    backgroundColor: '#F0F0F0',
-  },
-  disabledQualityButtonText: {
-    color: '#CCCCCC',
-  },
-  disabledQualityDescription: {
-    color: '#CCCCCC',
   },
   videoFormatsContainer: {
     flexDirection: 'row',
