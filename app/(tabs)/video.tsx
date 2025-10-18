@@ -63,14 +63,18 @@ interface GeneratedVideo {
 }
 
 const VIDEO_INSPIRATION_PROMPTS = [
-  "Underwater scene with colorful fish swimming through coral reefs",
-  "Steam rising from a hot cup of coffee on a rainy morning",
-  "A magical forest with glowing mushrooms and floating particles of light",
-  "Clouds forming and transforming in a blue sky time-lapse",
-  "A butterfly emerging from its cocoon in macro detail",
-  "City lights twinkling as day transitions to night",
-  "A campfire crackling under a starry night sky",
-  "Lava flowing down a volcanic slope creating new land"
+  "Underwater scene: schools of vibrant tropical fish swimming through colorful coral reefs, sunlight filtering through water creating dancing light patterns, sea turtles gliding gracefully, cinematic underwater footage",
+  "Morning coffee scene: steam slowly rising from a ceramic cup on a wooden table, rain droplets sliding down a window in background, warm cozy lighting, shallow depth of field, peaceful morning atmosphere",
+  "Enchanted forest at night: giant bioluminescent mushrooms pulsing with light, fireflies dancing in the air, magical particles floating upward, ethereal mist flowing through ancient trees, fantasy atmosphere",
+  "Time-lapse of dramatic clouds: storm clouds forming and transforming across a vivid blue sky, sunlight breaking through gaps, shadows racing across landscape, cinematic weather footage, 4K quality",
+  "Macro butterfly emergence: monarch butterfly slowly emerging from chrysalis, wings unfurling and drying, extreme close-up detail, natural lighting, beautiful metamorphosis, nature documentary style",
+  "Golden hour city transition: urban skyline as sun sets, lights gradually turning on building by building, traffic creating light trails, sky changing from orange to deep blue, time-lapse cinematography",
+  "Campfire under stars: flames dancing and crackling, sparks floating upward toward a star-filled sky, Milky Way visible above, warm orange glow contrasting with cool blue night, peaceful camping scene",
+  "Volcanic eruption: bright red lava flowing down a dark mountainside, molten rock creating new land as it meets the ocean, steam rising, intense heat glow, powerful forces of nature, dramatic footage",
+  "Cherry blossoms in wind: delicate pink petals falling like snow in slow motion, gentle breeze through blooming trees, spring atmosphere, soft natural lighting, peaceful Japanese garden setting",
+  "Northern lights display: aurora borealis dancing across a dark sky in vibrant greens and purples, reflection on still lake below, time-lapse of natural light show, winter landscape, magical atmosphere",
+  "Ocean waves crashing: powerful waves breaking on rocky shore in slow motion, water droplets suspended in air, dramatic foam and spray, golden hour lighting, coastal scenery, raw power of nature",
+  "Bee pollinating flowers: macro close-up of honeybee landing on vibrant flower, collecting pollen, moving between colorful blooms, shallow depth of field, nature documentary style, important ecological process"
 ];
 
 // Updated video quality options with Sora 2 Pro as Ultra
