@@ -245,7 +245,7 @@ export default function Gallery() {
 
   const handleDeleteImage = useCallback((image: StoredImage) => {
     Alert.alert(
-      `Supprimer ${image.isVideo ? 'la vidéo' : "l'image"}`,
+      `Supprimer ${image.isVideo ? 'la vidéo' : 'l\'image'}`,
       `Êtes-vous sûr de vouloir supprimer ${image.isVideo ? 'cette vidéo' : 'cette image'} ?`,
       [
         { text: 'Annuler', style: 'cancel' },
@@ -282,7 +282,7 @@ export default function Gallery() {
 
       Alert.alert('Succès', successMessage);
     } catch (error) {
-      const mediaType = image.isVideo ? 'la vidéo' : 'l'image';
+      const mediaType = image.isVideo ? 'la vidéo' : 'l\'image';
       Alert.alert('Erreur', error instanceof Error ? error.message : `Impossible de télécharger ${mediaType}`);
     } finally {
       setIsDownloading(false);
