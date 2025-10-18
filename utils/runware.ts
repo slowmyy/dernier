@@ -112,7 +112,7 @@ export class VideoGenerationService {
         return this.generateVideoWithSora2Pro(prompt, referenceImage, width, height, duration, onProgress);
       
       case 'google:3@1':
-        console.log('🚀 [ROUTER] → Google Veo 3.1 / Veo 3 Fast Frames (Pro)');
+        console.log('🚀 [ROUTER] → Google Veo 3.1 / Veo 3 Frames (Pro)');
         return this.generateVideoWithVeo3(prompt, referenceImage, onProgress);
       
       case 'bytedance:1@1':
@@ -296,7 +296,7 @@ export class VideoGenerationService {
   }
 
   // ✅ GOOGLE VEO 3 / VEO 3.1 - Méthode pour modèle Pro
-  // Utilise Veo 3.1 pour text-to-video et Veo 3 Fast Frames pour image-to-video
+  // Utilise Veo 3.1 pour text-to-video et Veo 3 Frames pour image-to-video
   async generateVideoWithVeo3(prompt: string, referenceImage?: File, onProgress?: (progress: number) => void): Promise<string> {
     console.log('🚀 [VEO3] Début génération vidéo avec Comet API');
     
@@ -323,8 +323,8 @@ export class VideoGenerationService {
         });
       }
 
-      // Utiliser veo3.1 pour text-to-video, veo3-fast-frames pour image-to-video
-      const modelToUse = referenceImage ? "veo3-fast-frames" : "veo3.1";
+      // Utiliser veo3.1 pour text-to-video, veo3-frames pour image-to-video
+      const modelToUse = referenceImage ? "veo3-frames" : "veo3.1";
 
       const payload = {
         model: modelToUse,
@@ -353,24 +353,34 @@ export class VideoGenerationService {
       }
 
       const data = await response.json();
-      console.log('📊 [VEO3] Réponse création tâche:', data);
+      console.log('📊 [VEO3] Réponse complète:', JSON.stringify(data, null, 2));
 
-      // Cas 1 : "veo3" classique avec suivi
-      if (data.links?.source) {
-        const statusUrl = data.links.source;
-        console.log('🔗 [VEO3] Suivi via links.source:', statusUrl);
-        return await this.pollVeo3Result(statusUrl, onProgress);
-      }
-
-      // Cas 2 : "veo3-fast-frames" ou "veo3.1" → URL directement dans choices
+      // Cas 1 : URL directement dans choices.message.content
       if (data.choices?.[0]?.message?.content) {
         const content = data.choices[0].message.content;
+        console.log('📝 [VEO3] Contenu message:', content);
         const match = content.match(/https?:\/\/[^\s"]+\.mp4/);
         if (match) {
           console.log('✅ [VEO3] URL vidéo extraite direct:', match[0]);
           if (onProgress) onProgress(100);
           return match[0];
         }
+      }
+
+      // Cas 2 : Suivi via links.source (polling nécessaire)
+      if (data.links?.source) {
+        const statusUrl = data.links.source;
+        console.log('🔗 [VEO3] Suivi via links.source:', statusUrl);
+        return await this.pollVeo3Result(statusUrl, onProgress);
+      }
+
+      // Cas 3 : Chercher dans toute la réponse
+      const fullResponse = JSON.stringify(data);
+      const fallbackMatch = fullResponse.match(/https?:\/\/[^\s"]+\.mp4/);
+      if (fallbackMatch) {
+        console.log('✅ [VEO3] URL vidéo trouvée (fallback):', fallbackMatch[0]);
+        if (onProgress) onProgress(100);
+        return fallbackMatch[0];
       }
 
       throw new Error('[VEO3] Erreur: Aucun lien vidéo trouvé dans la réponse');
@@ -385,7 +395,7 @@ export class VideoGenerationService {
     }
   }
 
-  // Méthode de polling pour veo3 classique
+  // Méthode de polling pour veo3 classique et veo3-frames
   async pollVeo3Result(statusUrl: string, onProgress?: (progress: number) => void): Promise<string> {
     if (onProgress) onProgress(60);
 
@@ -402,9 +412,10 @@ export class VideoGenerationService {
 
         if (statusResponse.ok) {
           const text = await statusResponse.text();
+          console.log(`📄 [VEO3] Réponse polling (${text.length} chars):`, text.substring(0, 500));
 
-          // Chercher la vidéo HQ
-          const highQualityMatch = text.match(/High-quality video generated[\s\S]*?(https?:\/\/[^\s\]]+\.mp4)/i);
+          // Pattern 1 : Chercher la vidéo HQ
+          const highQualityMatch = text.match(/High-quality video generated[\s\S]*?(https?:\/\/[^\s\]"']+\.mp4)/i);
           if (highQualityMatch) {
             const videoUrl = highQualityMatch[1];
             console.log('✅ [VEO3] URL vidéo HQ:', videoUrl);
@@ -412,8 +423,17 @@ export class VideoGenerationService {
             return videoUrl;
           }
 
-          // Fallback sur n'importe quelle URL .mp4
-          const anyMp4Match = text.match(/https?:\/\/[^\s\]]+\.mp4/i);
+          // Pattern 2 : Chercher "Video:" suivi d'une URL
+          const videoLabelMatch = text.match(/Video:\s*(https?:\/\/[^\s\]"']+\.mp4)/i);
+          if (videoLabelMatch) {
+            const videoUrl = videoLabelMatch[1];
+            console.log('✅ [VEO3] URL vidéo (Video:):', videoUrl);
+            if (onProgress) onProgress(100);
+            return videoUrl;
+          }
+
+          // Pattern 3 : N'importe quelle URL .mp4
+          const anyMp4Match = text.match(/https?:\/\/[^\s\]"'<>]+\.mp4/i);
           if (anyMp4Match) {
             const videoUrl = anyMp4Match[0];
             console.log('✅ [VEO3] URL vidéo (fallback):', videoUrl);
@@ -422,6 +442,8 @@ export class VideoGenerationService {
           }
 
           console.log('⏳ [VEO3] Vidéo pas encore prête...');
+        } else {
+          console.warn(`⚠️ [VEO3] Status ${statusResponse.status}`);
         }
       } catch (pollError) {
         console.warn('⚠️ [VEO3] Erreur polling (continue):', pollError);
