@@ -21,7 +21,14 @@ import { galleryEvents } from '@/services/galleryEvents';
 import { COLORS } from '@/constants/Colors';
 
 const { width: screenWidth } = Dimensions.get('window');
-const imageSize = (screenWidth - 8) / 3; // 3 colonnes avec très peu d'espacement
+const GRID_HORIZONTAL_PADDING = 16;
+const GRID_SPACING = 8;
+const NUM_COLUMNS = 3;
+const IMAGE_ASPECT_RATIO = 1.18;
+const imageWidth =
+  (screenWidth - GRID_HORIZONTAL_PADDING * 2 - GRID_SPACING * (NUM_COLUMNS - 1)) /
+  NUM_COLUMNS;
+const imageHeight = imageWidth * IMAGE_ASPECT_RATIO;
 
 type MediaType = 'photos' | 'videos';
 
@@ -431,7 +438,7 @@ export default function Gallery() {
           data={filteredMedia}
           renderItem={renderImageItem}
           keyExtractor={keyExtractor}
-          numColumns={3}
+          numColumns={NUM_COLUMNS}
           contentContainerStyle={styles.gridContainer}
           columnWrapperStyle={styles.row}
           ListEmptyComponent={
@@ -566,11 +573,34 @@ const ModalImageView = ({
 
   if (!selectedImage) return null;
 
+  const imageAspectRatio = useMemo(() => {
+    if (selectedImage.dimensions) {
+      const dimensionParts = selectedImage.dimensions
+        .toLowerCase()
+        .split(/[x×]/)
+        .map(part => Number(part.trim()));
+
+      if (dimensionParts.length === 2) {
+        const [width, height] = dimensionParts;
+        if (width > 0 && height > 0) {
+          return width / height;
+        }
+      }
+    }
+
+    return 3 / 4;
+  }, [selectedImage]);
+
   const getMediaAspectRatio = () => {
     if (selectedImage.isVideo && selectedImage.videoWidth && selectedImage.videoHeight) {
       return selectedImage.videoWidth / selectedImage.videoHeight;
     }
-    return 16 / 9;
+
+    if (selectedImage.dimensions) {
+      return imageAspectRatio;
+    }
+
+    return 3 / 4;
   };
 
   return (
@@ -604,7 +634,7 @@ const ModalImageView = ({
           ) : (
             <Image
               source={{ uri: actualImageUrl }}
-              style={styles.fullImage}
+              style={[styles.fullImage, { aspectRatio: imageAspectRatio }]}
               resizeMode="contain"
               cache="force-cache"
               priority="high"
@@ -845,23 +875,23 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   gridContainer: {
-    paddingHorizontal: 2,
-    paddingTop: 0,
-    paddingBottom: 40,
+    paddingHorizontal: GRID_HORIZONTAL_PADDING,
+    paddingTop: 12,
+    paddingBottom: 48,
   },
   row: {
     justifyContent: 'flex-start',
-    gap: 2,
+    gap: GRID_SPACING,
   },
   imageItem: {
-    width: imageSize,
-    height: imageSize,
-    marginBottom: 2,
+    width: imageWidth,
+    height: imageHeight,
+    marginBottom: GRID_SPACING,
     backgroundColor: '#1C1C1E',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    borderRadius: 4,
+    borderRadius: 12,
   },
   thumbnailImage: {
     width: '100%',
@@ -971,7 +1001,9 @@ const styles = StyleSheet.create({
   },
   fullImage: {
     width: '100%',
-    height: '60%',
+    maxHeight: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   videoModalContainer: {
     width: '100%',
