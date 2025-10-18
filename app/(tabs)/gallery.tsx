@@ -11,18 +11,17 @@ import {
   Modal,
   Dimensions,
   Platform,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trash2, Download, Share, X, Info, ChevronDown, ChevronUp, Play } from 'lucide-react-native';
+import { Trash2, Download, Share, X, RotateCcw, Info, ChevronDown, ChevronUp, Play } from 'lucide-react-native';
 import { storageService, StoredImage } from '@/services/storage';
 import ProfileHeader from '@/components/ProfileHeader';
 import { Video } from 'expo-av';
 import { galleryEvents } from '@/services/galleryEvents';
-import { COLORS } from '@/constants/Colors';
 
 const { width: screenWidth } = Dimensions.get('window');
-const imageSize = (screenWidth - 48) / 3; // 3 colonnes avec espacement
+const imageSize = (screenWidth - 60) / 2;
 
 type MediaType = 'photos' | 'videos';
 
@@ -57,7 +56,7 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
     >
       <View style={styles.videoOverlay}>
         <View style={styles.playIconContainer}>
-          <Play size={24} color="#FFFFFF" fill="#FFFFFF" />
+          <Play size={32} color="#FFFFFF" fill="#FFFFFF" />
         </View>
         {item.duration && (
           <View style={styles.durationBadge}>
@@ -131,12 +130,14 @@ const ImageThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
       {!imageLoaded && !imageError && (
         <View style={styles.imageLoader}>
           <ActivityIndicator size="small" color="#007AFF" />
+          <Text style={styles.loadingText}>Chargement...</Text>
         </View>
       )}
 
       {imageError ? (
         <View style={styles.imageError}>
           <Text style={styles.imageErrorText}>❌</Text>
+          <Text style={styles.imageErrorSubtext}>Erreur</Text>
         </View>
       ) : (
         shouldLoad && (
@@ -181,18 +182,38 @@ export default function Gallery() {
   }, []);
 
   const loadMedia = useCallback(async () => {
+    console.log('🔄 [GALLERY] Début chargement médias...');
     try {
       const storedImages = storageService.getAllImages();
-      const storedVideos = storageService.getAllVideos();
+      console.log('🖼️ [GALLERY] Images chargées:', storedImages.length);
+
+      const storedVideos = await storageService.getAllVideosAsync();
+      console.log('🎬 [GALLERY] Vidéos chargées (async):', storedVideos.length);
+
+      if (storedVideos.length > 0) {
+        console.log('📊 [GALLERY] Détails vidéos:', storedVideos.map(v => ({
+          id: v.id,
+          model: v.model,
+          url: v.url?.substring(0, 100),
+          duration: v.duration
+        })));
+      }
 
       const images: StoredImage[] = storedImages.map(img => ({ ...img, isVideo: false }));
       const videos: StoredImage[] = storedVideos.map(vid => ({ ...vid, isVideo: true }));
 
       const combined = [...images, ...videos].sort((a, b) => b.timestamp - a.timestamp);
 
+      console.log('✅ [GALLERY] Médias combinés:', {
+        images: images.length,
+        videos: videos.length,
+        total: combined.length
+      });
+
       setAllMedia(combined);
+      console.log('✅ [GALLERY] State allMedia mis à jour');
     } catch (error) {
-      console.error('Erreur lors du chargement des médias:', error);
+      console.error('❌ [GALLERY] Erreur chargement médias:', error);
     } finally {
       setIsLoading(false);
     }
@@ -202,6 +223,7 @@ export default function Gallery() {
     loadMedia();
 
     const handleNewMedia = () => {
+      console.log('[GALLERY] Nouveau média détecté, rechargement...');
       loadMedia();
     };
 
@@ -213,11 +235,25 @@ export default function Gallery() {
   }, [loadMedia]);
 
   const filteredMedia = useMemo(() => {
+    console.log('🔍 [GALLERY] Filtrage médias:', {
+      activeFilter,
+      totalMedia: allMedia.length
+    });
+
+    let filtered: StoredImage[];
     if (activeFilter === 'photos') {
-      return allMedia.filter(item => !item.isVideo);
+      filtered = allMedia.filter(item => !item.isVideo);
     } else {
-      return allMedia.filter(item => item.isVideo);
+      filtered = allMedia.filter(item => item.isVideo);
     }
+
+    console.log('✅ [GALLERY] Médias filtrés:', {
+      filter: activeFilter,
+      count: filtered.length,
+      items: filtered.map(f => ({ id: f.id, isVideo: f.isVideo, model: f.model }))
+    });
+
+    return filtered;
   }, [allMedia, activeFilter]);
 
   const onRefresh = useCallback(async () => {
@@ -228,7 +264,12 @@ export default function Gallery() {
 
   const handleImagePress = useCallback(async (image: StoredImage) => {
     try {
+      console.log('📸 [GALLERY] Ouverture image:', image.id);
+      // Résoudre l'URL AVANT d'ouvrir le modal
       const resolvedUrl = await storageService.getImageUrl(image);
+
+      console.log('✅ [GALLERY] URL résolue:', resolvedUrl?.substring(0, 100) || 'vide');
+
       setSelectedImage({
         ...image,
         resolvedUrl: resolvedUrl || image.url
@@ -236,7 +277,8 @@ export default function Gallery() {
       setIsModalVisible(true);
       setShowDetails(false);
     } catch (error) {
-      console.error('Erreur résolution URL:', error);
+      console.error('❌ [GALLERY] Erreur résolution URL:', error);
+      // Fallback : utiliser l'URL d'origine
       setSelectedImage({ ...image, resolvedUrl: image.url });
       setIsModalVisible(true);
       setShowDetails(false);
@@ -252,11 +294,11 @@ export default function Gallery() {
         {
           text: 'Supprimer',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             if (image.isVideo) {
-              storageService.deleteVideo(image.id);
+              await storageService.deleteVideo(image.id);
             } else {
-              storageService.deleteImage(image.id);
+              await storageService.deleteImage(image.id);
             }
             loadMedia();
             if (selectedImage?.id === image.id) {
@@ -298,11 +340,35 @@ export default function Gallery() {
         Alert.alert('Succès', 'Image partagée avec succès!');
       }
     } catch (error) {
-      Alert.alert('Erreur', error instanceof Error ? error.message : 'Impossible de partager l'image');
+      Alert.alert('Erreur', error instanceof Error ? error.message : 'Impossible de partager l\'image');
     } finally {
       setIsSharing(false);
     }
   }, []);
+
+  const handleClearAll = useCallback(() => {
+    const mediaType = activeFilter === 'photos' ? 'toutes les images' : 'toutes les vidéos';
+    Alert.alert(
+      'Vider la galerie',
+      `Êtes-vous sûr de vouloir supprimer ${mediaType} ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Tout supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            if (activeFilter === 'photos') {
+              await storageService.clearAllImages();
+            } else {
+              await storageService.clearAllVideos();
+            }
+            loadMedia();
+            handleCloseModal();
+          },
+        },
+      ]
+    );
+  }, [activeFilter, loadMedia, handleCloseModal]);
 
   const getCfgDescription = useCallback((value?: number) => {
     if (!value) return '';
@@ -313,6 +379,7 @@ export default function Gallery() {
     return 'Très fidèle';
   }, []);
 
+  // Optimisation avec useMemo pour éviter les re-renders inutiles
   const renderImageItem = useCallback(({ item }: { item: StoredImage }) => {
     return <GalleryItem item={item} onPress={handleImagePress} />;
   }, [handleImagePress]);
@@ -323,7 +390,7 @@ export default function Gallery() {
     <View style={styles.emptyState}>
       <Text style={styles.emptyTitle}>Aucune image générée</Text>
       <Text style={styles.emptySubtitle}>
-        Vos images générées apparaîtront ici
+        Vos images générées apparaîtront ici automatiquement
       </Text>
     </View>
   ), []);
@@ -331,7 +398,7 @@ export default function Gallery() {
   const renderLoadingState = useMemo(() => (
     <View style={styles.loadingState}>
       <ActivityIndicator size="large" color="#007AFF" />
-      <Text style={styles.loadingText}>Chargement...</Text>
+      <Text style={styles.loadingText}>Chargement de la galerie...</Text>
     </View>
   ), []);
 
@@ -353,83 +420,90 @@ export default function Gallery() {
     <View style={styles.container}>
       <ProfileHeader />
       <SafeAreaView style={styles.safeArea}>
-        {/* Header simple */}
         <View style={styles.header}>
-          <Text style={styles.title}>Profil</Text>
+          <Text style={styles.title}>Galerie</Text>
+          <Text style={styles.subtitle}>
+            {photosCount} photo{photosCount !== 1 ? 's' : ''} · {videosCount} vidéo{videosCount !== 1 ? 's' : ''}
+          </Text>
+
+          <View style={styles.filterTabs}>
+            <TouchableOpacity
+              style={[
+                styles.filterTab,
+                activeFilter === 'photos' && styles.filterTabActive
+              ]}
+              onPress={() => setActiveFilter('photos')}
+            >
+              <Text style={[
+                styles.filterTabText,
+                activeFilter === 'photos' && styles.filterTabTextActive
+              ]}>
+                Photos ({photosCount})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterTab,
+                activeFilter === 'videos' && styles.filterTabActive
+              ]}
+              onPress={() => setActiveFilter('videos')}
+            >
+              <Text style={[
+                styles.filterTabText,
+                activeFilter === 'videos' && styles.filterTabTextActive
+              ]}>
+                Vidéos ({videosCount})
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {filteredMedia.length > 0 && (
+            <TouchableOpacity style={styles.clearButton} onPress={handleClearAll}>
+              <RotateCcw size={16} color="#FF6B35" />
+              <Text style={styles.clearButtonText}>
+                Vider {activeFilter === 'photos' ? 'les photos' : 'les vidéos'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Onglets Image/Video */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeFilter === 'photos' && styles.tabActive,
-            ]}
-            onPress={() => setActiveFilter('photos')}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeFilter === 'photos' && styles.tabTextActive,
-              ]}
-            >
-              Image
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeFilter === 'videos' && styles.tabActive,
-            ]}
-            onPress={() => setActiveFilter('videos')}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeFilter === 'videos' && styles.tabTextActive,
-              ]}
-            >
-              Video
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Grille d'images */}
         <FlatList
           data={filteredMedia}
           renderItem={renderImageItem}
           keyExtractor={keyExtractor}
-          numColumns={3}
+          numColumns={2}
           contentContainerStyle={styles.gridContainer}
           columnWrapperStyle={styles.row}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>
-                Aucun{activeFilter === 'videos' ? 'e vidéo' : 'e image'}
+                Aucun{activeFilter === 'videos' ? 'e vidéo générée' : 'e photo générée'}
               </Text>
               <Text style={styles.emptySubtitle}>
-                Vos {activeFilter === 'videos' ? 'vidéos' : 'images'} apparaîtront ici
+                Vos {activeFilter === 'videos' ? 'vidéos générées' : 'images générées'} apparaîtront ici
               </Text>
             </View>
           }
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#007AFF"
-              colors={['#007AFF']}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           showsVerticalScrollIndicator={false}
+          // Optimisations de performance améliorées
           removeClippedSubviews={true}
-          maxToRenderPerBatch={6}
-          updateCellsBatchingPeriod={100}
-          initialNumToRender={6}
-          windowSize={10}
+          maxToRenderPerBatch={4} // Réduire encore plus pour éviter les erreurs de quota
+          updateCellsBatchingPeriod={100} // Augmenter pour réduire la charge
+          initialNumToRender={4} // Réduire le nombre initial
+          windowSize={8} // Réduire la fenêtre de rendu
+          // Améliore les performances de scroll
+          decelerationRate="fast"
+          bounces={true}
+          bouncesZoom={false}
+          // Optimisation mémoire
+          legacyImplementation={false}
         />
 
-        {/* Modal d'affichage */}
+        {/* Modal pour afficher l'image en grand */}
         <Modal
           visible={isModalVisible}
           transparent={true}
@@ -454,6 +528,7 @@ export default function Gallery() {
   );
 }
 
+// Separate component for modal image view to handle async image loading
 const ModalImageView = ({ 
   selectedImage, 
   onClose, 
@@ -491,10 +566,17 @@ const ModalImageView = ({
       };
     }
 
+    console.log('🔄 [MODAL] Chargement image:', {
+      id: selectedImage.id,
+      hasResolvedUrl: !!selectedImage.resolvedUrl,
+      urlPreview: selectedImage.url?.substring(0, 80) || 'vide'
+    });
+
     const hasResolvedUrl = Boolean(selectedImage.resolvedUrl && selectedImage.resolvedUrl.trim() !== '');
     const fallbackUrl = hasResolvedUrl ? selectedImage.resolvedUrl! : selectedImage.url;
 
     if (hasResolvedUrl) {
+      console.log('✅ [MODAL] Utilisation URL résolue directement');
       setActualImageUrl(fallbackUrl);
       setImageLoading(false);
       return () => {
@@ -502,20 +584,25 @@ const ModalImageView = ({
       };
     }
 
+    // Définir l'URL de fallback immédiatement pour éviter l'écran noir
     setActualImageUrl(fallbackUrl);
     setImageLoading(true);
 
     const loadActualUrl = async () => {
       try {
+        console.log('🔄 [MODAL] Chargement asynchrone URL...');
         const url = await storageService.getImageUrl(selectedImage);
         if (!isMounted) return;
 
         if (url && url.trim() !== '') {
+          console.log('✅ [MODAL] URL chargée avec succès');
           setActualImageUrl(url);
         } else {
+          console.warn('⚠️ [MODAL] URL vide retournée, utilisation fallback');
           setActualImageUrl(fallbackUrl);
         }
       } catch (error) {
+        console.error('❌ [MODAL] Erreur chargement URL:', error);
         if (isMounted) {
           setActualImageUrl(fallbackUrl);
         }
@@ -550,14 +637,17 @@ const ModalImageView = ({
             style={styles.closeButton}
             onPress={onClose}
           >
-            <X size={24} color="#000" />
+            <X size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.mediaViewContainer}>
           {imageLoading || !actualImageUrl ? (
             <View style={styles.modalImageLoading}>
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={styles.modalLoadingText}>
+                Chargement {selectedImage.isVideo ? 'de la vidéo' : 'de l\'image'}...
+              </Text>
             </View>
           ) : selectedImage.isVideo ? (
             <View style={[styles.videoModalContainer, { aspectRatio: getMediaAspectRatio() }]}>
@@ -589,7 +679,7 @@ const ModalImageView = ({
           >
             <Download size={20} color="#007AFF" />
             <Text style={styles.modalActionText}>
-              {isDownloading ? 'Téléchargement...' : 'Télécharger'}
+              {isDownloading ? 'Téléchargement...' : Platform.OS === 'web' ? 'Télécharger' : 'Sauvegarder'}
             </Text>
           </TouchableOpacity>
 
@@ -613,6 +703,7 @@ const ModalImageView = ({
           </TouchableOpacity>
         </View>
 
+        {/* Bouton pour afficher/masquer les détails */}
         <TouchableOpacity
           style={styles.detailsToggleButton}
           onPress={() => setShowDetails(!showDetails)}
@@ -631,7 +722,7 @@ const ModalImageView = ({
         {showDetails && (
           <View style={styles.imageDetails}>
             <Text style={styles.detailTitle}>
-              Détails {selectedImage.isVideo ? 'de la vidéo' : 'de l'image'}
+              Détails {selectedImage.isVideo ? 'de la vidéo' : 'de l\'image'}
             </Text>
             <Text style={styles.detailText}>
               <Text style={styles.detailLabel}>Prompt: </Text>
@@ -655,6 +746,28 @@ const ModalImageView = ({
                 {selectedImage.model}
               </Text>
             )}
+            {selectedImage.format && (
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Format: </Text>
+                {selectedImage.format} {selectedImage.dimensions && `(${selectedImage.dimensions})`}
+              </Text>
+            )}
+            {selectedImage.cfgScale && (
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Respect du prompt: </Text>
+                {selectedImage.cfgScale.toFixed(1)} ({getCfgDescription(selectedImage.cfgScale)})
+              </Text>
+            )}
+            {selectedImage.negativePrompt && (
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Prompt négatif: </Text>
+                "{selectedImage.negativePrompt}"
+              </Text>
+            )}
+            <Text style={styles.detailText}>
+              <Text style={styles.detailLabel}>Généré le: </Text>
+              {new Date(selectedImage.timestamp).toLocaleString()}
+            </Text>
           </View>
         )}
       </View>
@@ -665,97 +778,75 @@ const ModalImageView = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#FFFFFF',
   },
   safeArea: {
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#000000',
+    padding: 20,
+    paddingBottom: 10,
+    alignItems: 'center',
+    paddingTop: 10,
   },
   title: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#000000',
-    paddingHorizontal: 20,
-    gap: 0,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: '#007AFF',
-  },
-  tabText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#8E8E93',
-  },
-  tabTextActive: {
-    color: '#007AFF',
-  },
-  loadingState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-  gridContainer: {
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 40,
-  },
-  row: {
-    justifyContent: 'flex-start',
-    gap: 4,
-  },
-  imageItem: {
-    width: imageSize,
-    height: imageSize,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#000000',
     marginBottom: 4,
-    backgroundColor: '#1C1C1E',
-    justifyContent: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666666',
+    marginBottom: 16,
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 16,
+    width: '90%',
+  },
+  filterTab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
     alignItems: 'center',
-    overflow: 'hidden',
   },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-    top: 0,
-    left: 0,
+  filterTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  imageLoader: {
-    justifyContent: 'center',
+  filterTabText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#8E8E93',
+  },
+  filterTabTextActive: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  clearButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-    height: '100%',
+    backgroundColor: '#FFF5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFE5E5',
+    gap: 6,
   },
-  imageError: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#1C1C1E',
-  },
-  imageErrorText: {
-    fontSize: 24,
-    color: '#FFFFFF',
+  clearButtonText: {
+    color: '#FF6B35',
+    fontSize: 14,
+    fontWeight: '500',
   },
   videoOverlay: {
     position: 'absolute',
@@ -769,9 +860,9 @@ const styles = StyleSheet.create({
   },
   playIconContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 30,
-    width: 50,
-    height: 50,
+    borderRadius: 40,
+    width: 64,
+    height: 64,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -779,7 +870,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -789,26 +880,91 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  loadingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666666',
+    marginTop: 12,
+  },
+  gridContainer: {
+    padding: 20,
+    paddingTop: 10,
+  },
+  row: {
+    justifyContent: 'space-between',
+  },
+  imageItem: {
+    width: imageSize,
+    height: imageSize,
+    marginBottom: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F8F8F8',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  imageLoader: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+    gap: 8,
+  },
+  imageError: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F5F5F5',
+  },
+  imageErrorText: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  imageErrorSubtext: {
+    fontSize: 12,
+    color: '#666666',
+  },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
-    gap: 8,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 15,
-    color: '#8E8E93',
+    fontSize: 16,
+    color: '#666666',
     textAlign: 'center',
+    paddingHorizontal: 40,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
   },
   modalContent: {
@@ -822,7 +978,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   closeButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 20,
     padding: 8,
   },
@@ -835,9 +991,14 @@ const styles = StyleSheet.create({
   },
   modalImageLoading: {
     width: '100%',
-    height: 320,
+    height: 300,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 16,
+  },
+  modalLoadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
   },
   fullImage: {
     width: '100%',
@@ -847,6 +1008,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: '100%',
     backgroundColor: '#000000',
+    borderRadius: 12,
     overflow: 'hidden',
   },
   mediaFill: {
@@ -856,27 +1018,27 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 20,
     paddingVertical: 20,
     paddingHorizontal: 20,
   },
   modalActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1C1C1E',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 8,
     gap: 8,
-    minWidth: 110,
+    minWidth: 100,
     justifyContent: 'center',
   },
   modalActionButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   modalActionText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#007AFF',
   },
   deleteText: {
@@ -886,38 +1048,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1C1C1E',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     marginHorizontal: 20,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 8,
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   detailsToggleText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#007AFF',
   },
   imageDetails: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     margin: 20,
-    padding: 18,
+    padding: 16,
     borderRadius: 12,
-    gap: 10,
+    marginTop: 0,
   },
   detailTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 12,
   },
   detailText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#333333',
+    marginBottom: 8,
     lineHeight: 20,
   },
   detailLabel: {
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#000000',
   },
 });
