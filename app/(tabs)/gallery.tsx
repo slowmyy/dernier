@@ -298,7 +298,7 @@ export default function Gallery() {
         Alert.alert('Succès', 'Image partagée avec succès!');
       }
     } catch (error) {
-      Alert.alert('Erreur', error instanceof Error ? error.message : 'Impossible de partager l'image');
+      Alert.alert('Erreur', error instanceof Error ? error.message : 'Impossible de partager l\'image');
     } finally {
       setIsSharing(false);
     }
@@ -395,7 +395,7 @@ export default function Gallery() {
           </TouchableOpacity>
         </View>
 
-        {/* Grille d'images */}
+        {/* Grille d\'images */}
         <FlatList
           data={filteredMedia}
           renderItem={renderImageItem}
@@ -429,7 +429,7 @@ export default function Gallery() {
           windowSize={10}
         />
 
-        {/* Modal d'affichage */}
+        {/* Modal d\'affichage */}
         <Modal
           visible={isModalVisible}
           transparent={true}
@@ -631,7 +631,7 @@ const ModalImageView = ({
         {showDetails && (
           <View style={styles.imageDetails}>
             <Text style={styles.detailTitle}>
-              Détails {selectedImage.isVideo ? 'de la vidéo' : 'de l'image'}
+              Détails {selectedImage.isVideo ? 'de la vidéo' : 'de l\'image'}
             </Text>
             <Text style={styles.detailText}>
               <Text style={styles.detailLabel}>Prompt: </Text>
