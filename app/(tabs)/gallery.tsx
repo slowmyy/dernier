@@ -14,15 +14,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trash2, Download, Share, X, Info, ChevronDown, ChevronUp, Play } from 'lucide-react-native';
+import { Trash2, Download, Share, X, Info, ChevronDown, ChevronUp, Play, Settings, Award, ChevronRight, Edit } from 'lucide-react-native';
 import { storageService, StoredImage } from '@/services/storage';
-import ProfileHeader from '@/components/ProfileHeader';
 import { Video } from 'expo-av';
 import { galleryEvents } from '@/services/galleryEvents';
 import { COLORS } from '@/constants/Colors';
 
 const { width: screenWidth } = Dimensions.get('window');
-const imageSize = (screenWidth - 48) / 3; // 3 colonnes avec espacement
+const imageSize = (screenWidth - 8) / 3; // 3 colonnes avec très peu d'espacement
 
 type MediaType = 'photos' | 'videos';
 
@@ -173,6 +172,7 @@ export default function Gallery() {
   const [showDetails, setShowDetails] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
+  const [username] = useState('username_9221...');
 
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
@@ -338,7 +338,6 @@ export default function Gallery() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <ProfileHeader />
         <SafeAreaView style={styles.safeArea}>
           {renderLoadingState}
         </SafeAreaView>
@@ -351,11 +350,43 @@ export default function Gallery() {
 
   return (
     <View style={styles.container}>
-      <ProfileHeader />
       <SafeAreaView style={styles.safeArea}>
-        {/* Header simple */}
+        {/* Header avec PRO badge */}
         <View style={styles.header}>
           <Text style={styles.title}>Profil</Text>
+          <View style={styles.headerRight}>
+            <View style={styles.proBadge}>
+              <Text style={styles.proText}>PRO</Text>
+            </View>
+            <TouchableOpacity style={styles.settingsButton}>
+              <Settings size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Daily Rewards Card */}
+        <View style={styles.rewardsCard}>
+          <View style={styles.rewardsIcon}>
+            <Award size={32} color="#FFFFFF" />
+          </View>
+          <View style={styles.rewardsContent}>
+            <Text style={styles.rewardsTitle}>Daily Rewards</Text>
+            <Text style={styles.rewardsSubtitle}>Visit the app daily to get free coins</Text>
+          </View>
+          <ChevronRight size={24} color="#FFFFFF" />
+        </View>
+
+        {/* User Profile Section */}
+        <View style={styles.userSection}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>U</Text>
+            </View>
+          </View>
+          <Text style={styles.username}>{username}</Text>
+          <TouchableOpacity style={styles.editButton}>
+            <Edit size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
         {/* Onglets Image/Video */}
@@ -671,8 +702,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
     backgroundColor: '#000000',
   },
   title: {
@@ -681,29 +716,123 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.5,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  proBadge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  proText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2C2C2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rewardsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#8B7BA8',
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+  },
+  rewardsIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rewardsContent: {
+    flex: 1,
+  },
+  rewardsTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  rewardsSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  userSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#6C6C70',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  username: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#000000',
-    paddingHorizontal: 20,
-    gap: 0,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    gap: 8,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#2C2C2E',
   },
   tabActive: {
-    borderBottomColor: '#007AFF',
+    backgroundColor: '#007AFF',
   },
   tabText: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
     color: '#8E8E93',
   },
   tabTextActive: {
-    color: '#007AFF',
+    color: '#FFFFFF',
   },
   loadingState: {
     flex: 1,
@@ -716,22 +845,23 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   gridContainer: {
-    paddingHorizontal: 12,
-    paddingTop: 12,
+    paddingHorizontal: 2,
+    paddingTop: 0,
     paddingBottom: 40,
   },
   row: {
     justifyContent: 'flex-start',
-    gap: 4,
+    gap: 2,
   },
   imageItem: {
     width: imageSize,
     height: imageSize,
-    marginBottom: 4,
+    marginBottom: 2,
     backgroundColor: '#1C1C1E',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    borderRadius: 4,
   },
   thumbnailImage: {
     width: '100%',
