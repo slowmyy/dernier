@@ -22,7 +22,8 @@ import { COLORS } from '@/constants/Colors';
 import { router } from 'expo-router';
 
 const { width: screenWidth } = Dimensions.get('window');
-const imageSize = (screenWidth - 4) / 3;
+const NUM_COLUMNS = 3;
+const imageSize = (screenWidth - 4) / NUM_COLUMNS;
 
 type MediaType = 'photos' | 'videos';
 
