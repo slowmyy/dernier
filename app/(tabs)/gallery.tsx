@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trash2, Download, Share, X, Info, ChevronDown, ChevronUp, Play, Settings, Award, ChevronRight, Edit } from 'lucide-react-native';
 import { storageService, StoredImage } from '@/services/storage';
 import { Video } from 'expo-av';
-import { galleryEvents } from '@/services/galleryEvents';
+import { useMediaCache } from '@/contexts/MediaCacheContext';
 import { COLORS } from '@/constants/Colors';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -170,14 +170,13 @@ const GalleryItem = ({ item, onPress }: { item: StoredImage; onPress: (item: Sto
 };
 
 export default function Gallery() {
-  const [allMedia, setAllMedia] = useState<StoredImage[]>([]);
+  const { allMedia, isLoading, refreshMedia } = useMediaCache();
   const [selectedImage, setSelectedImage] = useState<StoredImage | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
   const [username] = useState('username_9221...');
 
@@ -186,38 +185,6 @@ export default function Gallery() {
     setSelectedImage(null);
     setShowDetails(false);
   }, []);
-
-  const loadMedia = useCallback(async () => {
-    try {
-      const storedImages = storageService.getAllImages();
-      const storedVideos = storageService.getAllVideos();
-
-      const images: StoredImage[] = storedImages.map(img => ({ ...img, isVideo: false }));
-      const videos: StoredImage[] = storedVideos.map(vid => ({ ...vid, isVideo: true }));
-
-      const combined = [...images, ...videos].sort((a, b) => b.timestamp - a.timestamp);
-
-      setAllMedia(combined);
-    } catch (error) {
-      console.error('Erreur lors du chargement des médias:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMedia();
-
-    const handleNewMedia = () => {
-      loadMedia();
-    };
-
-    galleryEvents.onNewMedia(handleNewMedia);
-
-    return () => {
-      galleryEvents.removeNewMediaListener(handleNewMedia);
-    };
-  }, [loadMedia]);
 
   const filteredMedia = useMemo(() => {
     if (activeFilter === 'photos') {
@@ -229,9 +196,9 @@ export default function Gallery() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadMedia();
+    await refreshMedia();
     setRefreshing(false);
-  }, [loadMedia]);
+  }, [refreshMedia]);
 
   const handleImagePress = useCallback(async (image: StoredImage) => {
     try {
@@ -259,13 +226,13 @@ export default function Gallery() {
         {
           text: 'Supprimer',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             if (image.isVideo) {
               storageService.deleteVideo(image.id);
             } else {
               storageService.deleteImage(image.id);
             }
-            loadMedia();
+            await refreshMedia();
             if (selectedImage?.id === image.id) {
               handleCloseModal();
             }
@@ -273,7 +240,7 @@ export default function Gallery() {
         },
       ]
     );
-  }, [selectedImage, loadMedia, handleCloseModal]);
+  }, [selectedImage, refreshMedia, handleCloseModal]);
 
   const handleDownloadImage = useCallback(async (image: StoredImage) => {
     setIsDownloading(true);

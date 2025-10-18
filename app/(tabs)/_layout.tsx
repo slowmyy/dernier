@@ -15,6 +15,15 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
+        name="effects"
+        options={{
+          title: 'Effet',
+          tabBarIcon: ({ size, color }) => (
+            <Sparkles size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: 'Image',
@@ -26,7 +35,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="video"
         options={{
-          title: 'Video',
+          title: 'Vidéo',
           tabBarIcon: ({ size, color }) => (
             <Video size={size} color={color} />
           ),
@@ -35,18 +44,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="gallery"
         options={{
-          title: 'Gallery',
+          title: 'Galerie',
           tabBarIcon: ({ size, color }) => (
             <FolderOpen size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="effects"
-        options={{
-          title: 'Effets',
-          tabBarIcon: ({ size, color }) => (
-            <Sparkles size={size} color={color} />
           ),
         }}
       />
