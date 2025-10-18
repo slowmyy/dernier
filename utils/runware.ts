@@ -322,11 +322,16 @@ export class VideoGenerationService {
         });
       }
 
+      // Utiliser veo3 classique si pas d'image de référence, sinon veo3-fast-frames
+      const modelToUse = referenceImage ? "veo3-fast-frames" : "veo3";
+
       const payload = {
-        model: "veo3-fast-frames",
+        model: modelToUse,
         messages: [{ role: "user", content }],
         max_tokens: 300
       };
+
+      console.log('🎯 [VEO3] Modèle utilisé:', modelToUse);
 
       console.log('📡 [VEO3] Envoi vers Comet API...');
       if (onProgress) onProgress(referenceImage ? 40 : 30);
