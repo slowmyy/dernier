@@ -112,7 +112,7 @@ export class VideoGenerationService {
         return this.generateVideoWithSora2Pro(prompt, referenceImage, width, height, duration, onProgress);
       
       case 'google:3@1':
-        console.log('🚀 [ROUTER] → Google Veo 3.1 / Veo 3 Frames (Pro)');
+        console.log('🚀 [ROUTER] → Google Veo 3.1 / Veo 3 Fast Frames (Pro)');
         return this.generateVideoWithVeo3(prompt, referenceImage, onProgress);
       
       case 'bytedance:1@1':
@@ -296,7 +296,7 @@ export class VideoGenerationService {
   }
 
   // ✅ GOOGLE VEO 3 / VEO 3.1 - Méthode pour modèle Pro
-  // Utilise Veo 3.1 pour text-to-video et Veo 3 Frames pour image-to-video
+  // Utilise Veo 3.1 pour text-to-video et Veo 3 Fast Frames pour image-to-video
   async generateVideoWithVeo3(prompt: string, referenceImage?: File, onProgress?: (progress: number) => void): Promise<string> {
     console.log('🚀 [VEO3] Début génération vidéo avec Comet API');
     
@@ -323,8 +323,8 @@ export class VideoGenerationService {
         });
       }
 
-      // Utiliser veo3.1 pour text-to-video, veo3-frames pour image-to-video
-      const modelToUse = referenceImage ? "veo3-frames" : "veo3.1";
+      // Utiliser veo3.1 pour text-to-video, veo3-fast-frames pour image-to-video
+      const modelToUse = referenceImage ? "veo3-fast-frames" : "veo3.1";
 
       const payload = {
         model: modelToUse,
@@ -362,7 +362,7 @@ export class VideoGenerationService {
         return await this.pollVeo3Result(statusUrl, onProgress);
       }
 
-      // Cas 2 : "veo3-frames" ou "veo3.1" → URL directement dans choices
+      // Cas 2 : "veo3-fast-frames" ou "veo3.1" → URL directement dans choices
       if (data.choices?.[0]?.message?.content) {
         const content = data.choices[0].message.content;
         const match = content.match(/https?:\/\/[^\s"]+\.mp4/);
