@@ -112,7 +112,7 @@ export class VideoGenerationService {
         return this.generateVideoWithSora2Pro(prompt, referenceImage, width, height, duration, onProgress);
       
       case 'google:3@1':
-        console.log('🚀 [ROUTER] → Google Veo 3 Fast (Pro)');
+        console.log('🚀 [ROUTER] → Google Veo 3.1 / Veo 3 Fast Frames (Pro)');
         return this.generateVideoWithVeo3(prompt, referenceImage, onProgress);
       
       case 'bytedance:1@1':
@@ -295,7 +295,8 @@ export class VideoGenerationService {
     throw new Error('Timeout: vidéo Sora 2 Pro non récupérée après 10 minutes');
   }
 
-  // ✅ GOOGLE VEO 3 FAST - Méthode pour modèle Pro
+  // ✅ GOOGLE VEO 3 / VEO 3.1 - Méthode pour modèle Pro
+  // Utilise Veo 3.1 pour text-to-video et Veo 3 Fast Frames pour image-to-video
   async generateVideoWithVeo3(prompt: string, referenceImage?: File, onProgress?: (progress: number) => void): Promise<string> {
     console.log('🚀 [VEO3] Début génération vidéo avec Comet API');
     
@@ -322,8 +323,8 @@ export class VideoGenerationService {
         });
       }
 
-      // Utiliser veo3 classique si pas d'image de référence, sinon veo3-fast-frames
-      const modelToUse = referenceImage ? "veo3-fast-frames" : "veo3";
+      // Utiliser veo3.1 pour text-to-video, veo3-fast-frames pour image-to-video
+      const modelToUse = referenceImage ? "veo3-fast-frames" : "veo3.1";
 
       const payload = {
         model: modelToUse,
@@ -331,7 +332,7 @@ export class VideoGenerationService {
         max_tokens: 300
       };
 
-      console.log('🎯 [VEO3] Modèle utilisé:', modelToUse);
+      console.log('🎯 [VEO3] Modèle utilisé:', modelToUse, referenceImage ? '(image-to-video)' : '(text-to-video)');
 
       console.log('📡 [VEO3] Envoi vers Comet API...');
       if (onProgress) onProgress(referenceImage ? 40 : 30);

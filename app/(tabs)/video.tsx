@@ -97,9 +97,9 @@ const VIDEO_QUALITY_OPTIONS = [
     id: 'pro',
     name: 'Pro',
     emoji: '🚀',
-    description: 'Veo 3 HD (Fast avec image)',
+    description: 'Veo 3.1 (Frames avec image)',
     model: 'google:3@1',
-    modelName: 'Google Veo 3',
+    modelName: 'Google Veo 3.1',
     duration: 8,
     supportedFormats: [
       { id: 'landscape', name: 'Paysage', width: 1920, height: 1080, emoji: '🖥️' },
@@ -534,7 +534,7 @@ export default function VideoGenerator() {
         {/* Note importante */}
         <View style={styles.noteContainer}>
           <Text style={styles.noteText}>
-            💡 Standard: Rapide | Pro: Veo 3 HD (Veo 3 Fast avec image) | Ultra: Sora 2 Pro 720p
+            💡 Standard: Rapide | Pro: Veo 3.1 (Veo 3 Frames avec image) | Ultra: Sora 2 Pro 720p
           </Text>
         </View>
 
