@@ -19,16 +19,10 @@ import { storageService, StoredImage } from '@/services/storage';
 import { Video } from 'expo-av';
 import { useMediaCache } from '@/contexts/MediaCacheContext';
 import { COLORS } from '@/constants/Colors';
+import { router } from 'expo-router';
 
 const { width: screenWidth } = Dimensions.get('window');
-const GRID_HORIZONTAL_PADDING = 16;
-const GRID_SPACING = 8;
-const NUM_COLUMNS = 3;
-const IMAGE_ASPECT_RATIO = 1.18;
-const imageWidth =
-  (screenWidth - GRID_HORIZONTAL_PADDING * 2 - GRID_SPACING * (NUM_COLUMNS - 1)) /
-  NUM_COLUMNS;
-const imageHeight = imageWidth * IMAGE_ASPECT_RATIO;
+const imageSize = (screenWidth - 4) / 3;
 
 type MediaType = 'photos' | 'videos';
 
@@ -332,7 +326,10 @@ export default function Gallery() {
             <View style={styles.proBadge}>
               <Text style={styles.proText}>PRO</Text>
             </View>
-            <TouchableOpacity style={styles.settingsButton}>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => router.push('/profile')}
+            >
               <Settings size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -842,23 +839,23 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   gridContainer: {
-    paddingHorizontal: GRID_HORIZONTAL_PADDING,
-    paddingTop: 12,
+    paddingHorizontal: 1,
+    paddingTop: 0,
     paddingBottom: 48,
   },
   row: {
     justifyContent: 'flex-start',
-    gap: GRID_SPACING,
+    gap: 1,
   },
   imageItem: {
-    width: imageWidth,
-    height: imageHeight,
-    marginBottom: GRID_SPACING,
+    width: imageSize,
+    height: imageSize,
+    marginBottom: 1,
     backgroundColor: '#1C1C1E',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    borderRadius: 12,
+    borderRadius: 0,
   },
   thumbnailImage: {
     width: '100%',

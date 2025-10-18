@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { storageService, StoredImage } from '@/services/storage';
 import { galleryEvents } from '@/services/galleryEvents';
+import { Image } from 'react-native';
 
 interface MediaCacheContextType {
   allMedia: StoredImage[];
@@ -13,6 +14,25 @@ const MediaCacheContext = createContext<MediaCacheContextType | undefined>(undef
 export function MediaCacheProvider({ children }: { children: ReactNode }) {
   const [allMedia, setAllMedia] = useState<StoredImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const preloadedUrls = useRef(new Set<string>());
+
+  const preloadImages = useCallback(async (media: StoredImage[]) => {
+    const imagesToPreload = media.filter(item => !item.isVideo && !preloadedUrls.current.has(item.url));
+
+    const preloadPromises = imagesToPreload.map(async (item) => {
+      try {
+        const url = await storageService.getImageUrl(item);
+        if (url && url.trim() !== '') {
+          await Image.prefetch(url);
+          preloadedUrls.current.add(item.url);
+        }
+      } catch (error) {
+        console.warn('Erreur préchargement image:', item.id, error);
+      }
+    });
+
+    await Promise.allSettled(preloadPromises);
+  }, []);
 
   const loadMedia = useCallback(async () => {
     try {
@@ -25,12 +45,14 @@ export function MediaCacheProvider({ children }: { children: ReactNode }) {
       const combined = [...images, ...videos].sort((a, b) => b.timestamp - a.timestamp);
 
       setAllMedia(combined);
+
+      preloadImages(combined);
     } catch (error) {
       console.error('Erreur lors du chargement des médias:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [preloadImages]);
 
   const refreshMedia = useCallback(async () => {
     await loadMedia();
