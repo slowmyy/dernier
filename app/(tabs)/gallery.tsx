@@ -26,7 +26,7 @@ const { width: screenWidth } = Dimensions.get('window');
 const NUM_COLUMNS = 3;
 const GAP = 2;
 const imageWidth = (screenWidth - (GAP * (NUM_COLUMNS + 1))) / NUM_COLUMNS;
-const imageHeight = imageWidth * 1.4;
+const imageHeight = imageWidth * 1.15;
 
 type MediaType = 'photos' | 'videos';
 
@@ -403,11 +403,16 @@ export default function Gallery() {
           style={[
             styles.tabsContainer,
             {
+              opacity: scrollY.interpolate({
+                inputRange: [0, 50],
+                outputRange: [1, 0.95],
+                extrapolate: 'clamp',
+              }),
               transform: [
                 {
-                  translateY: scrollY.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: [0, -10],
+                  scale: scrollY.interpolate({
+                    inputRange: [0, 50],
+                    outputRange: [1, 0.98],
                     extrapolate: 'clamp',
                   }),
                 },
@@ -869,17 +874,27 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
     gap: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: 'transparent',
   },
   tabActive: {
     backgroundColor: '#007AFF',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   tabText: {
     fontSize: 16,
