@@ -663,6 +663,28 @@ const ModalFullscreenView = ({
     return 3 / 4;
   };
 
+  const mediaAspectRatio = getMediaAspectRatio();
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+  const getMediaDimensions = () => {
+    const availableHeight = screenHeight * 0.7;
+    const availableWidth = screenWidth * 0.95;
+
+    if (mediaAspectRatio > availableWidth / availableHeight) {
+      return {
+        width: availableWidth,
+        height: availableWidth / mediaAspectRatio,
+      };
+    } else {
+      return {
+        width: availableHeight * mediaAspectRatio,
+        height: availableHeight,
+      };
+    }
+  };
+
+  const mediaDimensions = getMediaDimensions();
+
   return (
     <View style={styles.modalContainer}>
       {/* Bouton de fermeture en haut à gauche */}
@@ -690,7 +712,7 @@ const ModalFullscreenView = ({
         ) : selectedImage.isVideo ? (
           <Video
             source={{ uri: actualImageUrl }}
-            style={styles.fullscreenMedia}
+            style={[styles.fullscreenMedia, mediaDimensions]}
             resizeMode="contain"
             shouldPlay
             isLooping
@@ -699,7 +721,7 @@ const ModalFullscreenView = ({
         ) : (
           <Image
             source={{ uri: actualImageUrl }}
-            style={styles.fullscreenMedia}
+            style={[styles.fullscreenMedia, mediaDimensions]}
             resizeMode="contain"
             cache="force-cache"
             priority="high"
@@ -1041,8 +1063,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullscreenMedia: {
-    width: '100%',
-    height: '100%',
+    maxWidth: '100%',
+    maxHeight: '100%',
   },
   modalImageLoading: {
     justifyContent: 'center',
