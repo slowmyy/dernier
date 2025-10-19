@@ -578,6 +578,24 @@ const ModalFullscreenView = ({
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(true);
 
+  const imageAspectRatio = useMemo(() => {
+    if (selectedImage?.dimensions) {
+      const dimensionParts = selectedImage.dimensions
+        .toLowerCase()
+        .split(/[x×]/)
+        .map(part => Number(part.trim()));
+
+      if (dimensionParts.length === 2) {
+        const [width, height] = dimensionParts;
+        if (width > 0 && height > 0) {
+          return width / height;
+        }
+      }
+    }
+
+    return 3 / 4;
+  }, [selectedImage]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -632,24 +650,6 @@ const ModalFullscreenView = ({
   }, [selectedImage]);
 
   if (!selectedImage) return null;
-
-  const imageAspectRatio = useMemo(() => {
-    if (selectedImage.dimensions) {
-      const dimensionParts = selectedImage.dimensions
-        .toLowerCase()
-        .split(/[x×]/)
-        .map(part => Number(part.trim()));
-
-      if (dimensionParts.length === 2) {
-        const [width, height] = dimensionParts;
-        if (width > 0 && height > 0) {
-          return width / height;
-        }
-      }
-    }
-
-    return 3 / 4;
-  }, [selectedImage]);
 
   const getMediaAspectRatio = () => {
     if (selectedImage.isVideo && selectedImage.videoWidth && selectedImage.videoHeight) {
