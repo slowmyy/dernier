@@ -404,15 +404,15 @@ export default function Gallery() {
             styles.tabsContainer,
             {
               opacity: scrollY.interpolate({
-                inputRange: [0, 50],
-                outputRange: [1, 0.95],
+                inputRange: [0, 150],
+                outputRange: [1, 0.96],
                 extrapolate: 'clamp',
               }),
               transform: [
                 {
-                  scale: scrollY.interpolate({
-                    inputRange: [0, 50],
-                    outputRange: [1, 0.98],
+                  translateY: scrollY.interpolate({
+                    inputRange: [0, 150],
+                    outputRange: [0, -8],
                     extrapolate: 'clamp',
                   }),
                 },
