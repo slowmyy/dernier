@@ -21,12 +21,13 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trash2, Download, Share, X, Info, ChevronDown, ChevronUp, Play, Settings, Award, ChevronRight, Edit } from 'lucide-react-native';
+import { Trash2, Download, Share, Play, Settings, Award, ChevronRight, Edit } from 'lucide-react-native';
 import { storageService, StoredImage } from '@/services/storage';
 import { Video } from 'expo-av';
 import { useMediaCache } from '@/contexts/MediaCacheContext';
 import { COLORS } from '@/constants/Colors';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: screenWidth } = Dimensions.get('window');
 const NUM_COLUMNS = 3;
@@ -180,7 +181,6 @@ export default function Gallery() {
   const [refreshing, setRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
   const [username] = useState('username_9221...');
 
@@ -211,9 +211,6 @@ export default function Gallery() {
   });
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
-    // Phase 1 (0-80px): parallax léger, le header suit à 85 % du scroll
-    // Phase 2 (80-120px): transition progressive vers la synchronisation complète
-    // Phase 3 (>120px): déplacement identique au contenu pour rester aligné
     const translateY = interpolate(
       scrollY.value,
       [0, 80, 120],
@@ -237,7 +234,6 @@ export default function Gallery() {
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
     setSelectedImage(null);
-    setShowDetails(false);
   }, []);
 
   const filteredMedia = useMemo(() => {
@@ -262,12 +258,10 @@ export default function Gallery() {
         resolvedUrl: resolvedUrl || image.url
       });
       setIsModalVisible(true);
-      setShowDetails(false);
     } catch (error) {
       console.error('Erreur résolution URL:', error);
       setSelectedImage({ ...image, resolvedUrl: image.url });
       setIsModalVisible(true);
-      setShowDetails(false);
     }
   }, []);
 
@@ -332,14 +326,47 @@ export default function Gallery() {
     }
   }, []);
 
-  const getCfgDescription = useCallback((value?: number) => {
-    if (!value) return '';
-    if (value <= 1.5) return 'Très créatif';
-    if (value <= 2.5) return 'Créatif';
-    if (value <= 4) return 'Équilibré';
-    if (value <= 6) return 'Fidèle';
-    return 'Très fidèle';
-  }, []);
+  const handleAnimateImage = useCallback(async (image: StoredImage) => {
+    if (image.isVideo) {
+      Alert.alert('Info', 'Cette fonctionnalité est disponible uniquement pour les images');
+      return;
+    }
+
+    try {
+      console.log('🎬 [ANIMATE] Début du processus d\'animation');
+      
+      const uniqueTimestamp = Date.now();
+      console.log('🎬 [ANIMATE] Timestamp unique:', uniqueTimestamp);
+      
+      const imageData = {
+        url: image.url,
+        prompt: image.prompt,
+        timestamp: uniqueTimestamp,
+        fromImageGenerator: true,
+        originalTimestamp: image.timestamp
+      };
+      
+      await AsyncStorage.setItem('pendingVideoReferenceImage', JSON.stringify(imageData));
+      
+      console.log('✅ [ANIMATE] Image sauvegardée dans AsyncStorage');
+      console.log('🎬 [ANIMATE] Données sauvées:', imageData);
+      
+      // Fermer le modal et naviguer
+      handleCloseModal();
+      router.push('/(tabs)/video');
+      
+      console.log('✅ [ANIMATE] Navigation vers l\'onglet vidéo');
+      
+    } catch (error) {
+      console.error('❌ [ANIMATE] Erreur lors de la préparation:', error);
+      try {
+        await AsyncStorage.removeItem('pendingVideoReferenceImage');
+      } catch (cleanupError) {
+        console.error('❌ [ANIMATE] Erreur nettoyage:', cleanupError);
+      }
+      Alert.alert('Erreur', 'Impossible de transférer l\'image vers le générateur vidéo');
+    }
+  }, [handleCloseModal]);
 
   const renderImageItem = useCallback(({ item }: { item: StoredImage }) => {
     return <GalleryItem item={item} onPress={handleImagePress} />;
@@ -372,9 +399,6 @@ export default function Gallery() {
       </View>
     );
   }
-
-  const photosCount = allMedia.filter(m => !m.isVideo).length;
-  const videosCount = allMedia.filter(m => m.isVideo).length;
 
   return (
     <View style={styles.container}>
@@ -509,24 +533,22 @@ export default function Gallery() {
           scrollEventThrottle={16}
         />
 
-        {/* Modal d\'affichage */}
+        {/* Modal d'affichage PLEIN ÉCRAN */}
         <Modal
           visible={isModalVisible}
           transparent={true}
           animationType="fade"
           onRequestClose={handleCloseModal}
         >
-          <ModalImageView
+          <ModalFullscreenView
             selectedImage={selectedImage}
             onClose={handleCloseModal}
             onDownload={handleDownloadImage}
             onShare={handleShareImage}
             onDelete={handleDeleteImage}
+            onAnimate={handleAnimateImage}
             isDownloading={isDownloading}
             isSharing={isSharing}
-            showDetails={showDetails}
-            setShowDetails={setShowDetails}
-            getCfgDescription={getCfgDescription}
           />
         </Modal>
       </SafeAreaView>
@@ -534,28 +556,24 @@ export default function Gallery() {
   );
 }
 
-const ModalImageView = ({ 
+const ModalFullscreenView = ({ 
   selectedImage, 
   onClose, 
   onDownload, 
   onShare, 
   onDelete,
+  onAnimate,
   isDownloading,
-  isSharing,
-  showDetails,
-  setShowDetails,
-  getCfgDescription
+  isSharing
 }: {
   selectedImage: StoredImage | null;
   onClose: () => void;
   onDownload: (image: StoredImage) => void;
   onShare: (image: StoredImage) => void;
   onDelete: (image: StoredImage) => void;
+  onAnimate: (image: StoredImage) => void;
   isDownloading: boolean;
   isSharing: boolean;
-  showDetails: boolean;
-  setShowDetails: (show: boolean) => void;
-  getCfgDescription: (value?: number) => string;
 }) => {
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(true);
@@ -647,119 +665,78 @@ const ModalImageView = ({
 
   return (
     <View style={styles.modalContainer}>
-      <View style={styles.modalContent}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-          >
-            <X size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
+      {/* Bouton de fermeture en haut à gauche */}
+      <TouchableOpacity
+        style={styles.closeButtonTopLeft}
+        onPress={onClose}
+      >
+        <Text style={styles.closeButtonText}>✕</Text>
+      </TouchableOpacity>
 
-        <View style={styles.mediaViewContainer}>
-          {imageLoading || !actualImageUrl ? (
-            <View style={styles.modalImageLoading}>
-              <ActivityIndicator size="large" color="#007AFF" />
-            </View>
-          ) : selectedImage.isVideo ? (
-            <View style={[styles.videoModalContainer, { aspectRatio: getMediaAspectRatio() }]}>
-              <Video
-                source={{ uri: actualImageUrl }}
-                style={styles.mediaFill}
-                resizeMode="contain"
-                shouldPlay
-                isLooping
-                useNativeControls
-              />
-            </View>
-          ) : (
-            <Image
-              source={{ uri: actualImageUrl }}
-              style={[styles.fullImage, { aspectRatio: imageAspectRatio }]}
-              resizeMode="contain"
-              cache="force-cache"
-              priority="high"
-            />
-          )}
-        </View>
+      {/* Bouton de suppression en haut à droite */}
+      <TouchableOpacity
+        style={styles.deleteButtonTopRight}
+        onPress={() => onDelete(selectedImage)}
+      >
+        <Trash2 size={24} color="#FF3B30" />
+      </TouchableOpacity>
 
-        <View style={styles.modalActions}>
-          <TouchableOpacity
-            style={[styles.modalActionButton, isDownloading && styles.modalActionButtonDisabled]}
-            onPress={() => onDownload(selectedImage)}
-            disabled={isDownloading}
-          >
-            <Download size={20} color="#007AFF" />
-            <Text style={styles.modalActionText}>
-              {isDownloading ? 'Téléchargement...' : 'Télécharger'}
-            </Text>
-          </TouchableOpacity>
+      {/* Média en plein écran */}
+      <View style={styles.fullscreenMediaContainer}>
+        {imageLoading || !actualImageUrl ? (
+          <View style={styles.modalImageLoading}>
+            <ActivityIndicator size="large" color="#007AFF" />
+          </View>
+        ) : selectedImage.isVideo ? (
+          <Video
+            source={{ uri: actualImageUrl }}
+            style={styles.fullscreenMedia}
+            resizeMode="contain"
+            shouldPlay
+            isLooping
+            useNativeControls
+          />
+        ) : (
+          <Image
+            source={{ uri: actualImageUrl }}
+            style={styles.fullscreenMedia}
+            resizeMode="contain"
+            cache="force-cache"
+            priority="high"
+          />
+        )}
+      </View>
 
-          <TouchableOpacity
-            style={[styles.modalActionButton, isSharing && styles.modalActionButtonDisabled]}
-            onPress={() => onShare(selectedImage)}
-            disabled={isSharing}
-          >
-            <Share size={20} color="#007AFF" />
-            <Text style={styles.modalActionText}>
-              {isSharing ? 'Partage...' : 'Partager'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.modalActionButton}
-            onPress={() => onDelete(selectedImage)}
-          >
-            <Trash2 size={20} color="#FF3B30" />
-            <Text style={[styles.modalActionText, styles.deleteText]}>Supprimer</Text>
-          </TouchableOpacity>
-        </View>
-
+      {/* Boutons en bas */}
+      <View style={styles.bottomButtonsContainer}>
         <TouchableOpacity
-          style={styles.detailsToggleButton}
-          onPress={() => setShowDetails(!showDetails)}
+          style={[styles.bottomButton, isDownloading && styles.bottomButtonDisabled]}
+          onPress={() => onDownload(selectedImage)}
+          disabled={isDownloading}
         >
-          <Info size={20} color="#007AFF" />
-          <Text style={styles.detailsToggleText}>
-            {showDetails ? 'Masquer les détails' : 'Voir les détails'}
+          <Download size={24} color="#FFFFFF" />
+          <Text style={styles.bottomButtonText}>
+            {isDownloading ? 'Téléchargement...' : 'Télécharger'}
           </Text>
-          {showDetails ? (
-            <ChevronUp size={20} color="#007AFF" />
-          ) : (
-            <ChevronDown size={20} color="#007AFF" />
-          )}
         </TouchableOpacity>
 
-        {showDetails && (
-          <View style={styles.imageDetails}>
-            <Text style={styles.detailTitle}>
-              Détails {selectedImage.isVideo ? 'de la vidéo' : 'de l\'image'}
-            </Text>
-            <Text style={styles.detailText}>
-              <Text style={styles.detailLabel}>Prompt: </Text>
-              "{selectedImage.prompt}"
-            </Text>
-            {selectedImage.isVideo && selectedImage.duration && (
-              <Text style={styles.detailText}>
-                <Text style={styles.detailLabel}>Durée: </Text>
-                {Math.floor(selectedImage.duration)} secondes
-              </Text>
-            )}
-            {selectedImage.style && selectedImage.style !== 'No Style' && (
-              <Text style={styles.detailText}>
-                <Text style={styles.detailLabel}>Style: </Text>
-                {selectedImage.style}
-              </Text>
-            )}
-            {selectedImage.model && (
-              <Text style={styles.detailText}>
-                <Text style={styles.detailLabel}>Modèle: </Text>
-                {selectedImage.model}
-              </Text>
-            )}
-          </View>
+        {!selectedImage.isVideo && (
+          <TouchableOpacity
+            style={styles.bottomButton}
+            onPress={() => onAnimate(selectedImage)}
+          >
+            <Play size={24} color="#FFFFFF" />
+            <Text style={styles.bottomButtonText}>Animer</Text>
+          </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          style={[styles.bottomShareButton, isSharing && styles.bottomButtonDisabled]}
+          onPress={() => onShare(selectedImage)}
+          disabled={isSharing}
+        >
+          <Share size={24} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1021,120 +998,99 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
   },
+  // ✅ NOUVEAUX STYLES POUR LE MODAL PLEIN ÉCRAN
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: '#000000',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  modalContent: {
-    flex: 1,
+  closeButtonTopLeft: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(28, 28, 30, 0.8)',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  modalHeader: {
+  closeButtonText: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: '300',
+  },
+  deleteButtonTopRight: {
     position: 'absolute',
     top: 50,
     right: 20,
     zIndex: 10,
-  },
-  closeButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 8,
-  },
-  mediaViewContainer: {
-    width: '100%',
-    maxHeight: '70%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  modalImageLoading: {
-    width: '100%',
-    height: 320,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(28, 28, 30, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fullImage: {
+  fullscreenMediaContainer: {
+    flex: 1,
     width: '100%',
-    maxHeight: '100%',
-    borderRadius: 16,
-    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  videoModalContainer: {
-    width: '100%',
-    maxWidth: '100%',
-    backgroundColor: '#000000',
-    overflow: 'hidden',
-  },
-  mediaFill: {
+  fullscreenMedia: {
     width: '100%',
     height: '100%',
   },
-  modalActions: {
+  modalImageLoading: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  bottomButtonsContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 20,
+    alignItems: 'center',
     paddingHorizontal: 20,
+    gap: 12,
   },
-  modalActionButton: {
+  bottomButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1C1C1E',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    gap: 8,
-    minWidth: 110,
     justifyContent: 'center',
+    backgroundColor: 'rgba(28, 28, 30, 0.9)',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  modalActionButtonDisabled: {
+  bottomButtonDisabled: {
     opacity: 0.5,
   },
-  modalActionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  deleteText: {
-    color: '#FF3B30',
-  },
-  detailsToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1C1C1E',
-    marginHorizontal: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    gap: 8,
-    marginBottom: 12,
-  },
-  detailsToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  imageDetails: {
-    backgroundColor: '#1C1C1E',
-    margin: 20,
-    padding: 18,
-    borderRadius: 12,
-    gap: 10,
-  },
-  detailTitle: {
+  bottomButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-  },
-  detailLabel: {
     fontWeight: '600',
-    color: '#FFFFFF',
+  },
+  bottomShareButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(28, 28, 30, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
 });
+
