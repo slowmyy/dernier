@@ -23,6 +23,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trash2, Download, Share, Play, Settings, Award, ChevronRight, Edit } from 'lucide-react-native';
 import { storageService, StoredImage } from '@/services/storage';
+import { galleryEvents } from '@/services/galleryEvents'; // 🆕 Import pour notifier les mises à jour de galerie
 import { Video } from 'expo-av';
 import { useMediaCache } from '@/contexts/MediaCacheContext';
 import { COLORS } from '@/constants/Colors';
@@ -60,16 +61,30 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
     onPress({ ...item, resolvedUrl });
   }, [actualUrl, item, onPress]);
 
+  // 🆕 Détermination robuste du ratio vidéo (dimensions natives > métadonnées > fallback)
   const getVideoAspectRatio = () => {
     if (item.videoWidth && item.videoHeight) {
       return item.videoWidth / item.videoHeight;
     }
+
+    if (item.dimensions) {
+      const [rawWidth, rawHeight] = item.dimensions
+        .toLowerCase()
+        .split(/[x×]/)
+        .map(part => Number(part.trim()));
+
+      if (rawWidth > 0 && rawHeight > 0) {
+        return rawWidth / rawHeight;
+      }
+    }
+
     return 9 / 16;
   };
 
   const videoAspectRatio = getVideoAspectRatio();
   const itemAspectRatio = imageWidth / imageHeight;
-  const resizeMode = videoAspectRatio > itemAspectRatio ? 'contain' : 'cover';
+  const thumbnailResizeMode = videoAspectRatio > itemAspectRatio ? 'contain' : 'cover';
+  const videoSourceUri = actualUrl && actualUrl.trim() !== '' ? actualUrl : item.url;
 
   return (
     <TouchableOpacity
@@ -78,9 +93,10 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
       activeOpacity={0.8}
     >
       <Video
-        source={{ uri: actualUrl }}
+        // 🆕 Utilisation de l'URL résolue la plus fiable
+        source={{ uri: videoSourceUri }}
         style={styles.thumbnailImage}
-        resizeMode={resizeMode}
+        resizeMode={thumbnailResizeMode} // 🆕 Respect dynamique du ratio vidéo
         shouldPlay={false}
         isLooping={false}
         isMuted
@@ -92,6 +108,15 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
           <ActivityIndicator size="small" color="#007AFF" />
         </View>
       )}
+
+      {/* 🆕 Overlay discret pour afficher le prompt */}
+      {item.prompt ? (
+        <View style={styles.promptOverlay} pointerEvents="none">
+          <Text style={styles.promptText} numberOfLines={2}>
+            {item.prompt}
+          </Text>
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 };
@@ -161,6 +186,15 @@ const ImageThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
           />
         )
       )}
+
+      {/* 🆕 Overlay discret pour afficher le prompt de l'image */}
+      {item.prompt ? (
+        <View style={styles.promptOverlay} pointerEvents="none">
+          <Text style={styles.promptText} numberOfLines={2}>
+            {item.prompt}
+          </Text>
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 };
@@ -274,11 +308,12 @@ export default function Gallery() {
           style: 'destructive',
           onPress: async () => {
             if (image.isVideo) {
-              storageService.deleteVideo(image.id);
+              await storageService.deleteVideo(image.id); // 🆕 Attente de la suppression vidéo
             } else {
-              storageService.deleteImage(image.id);
+              await storageService.deleteImage(image.id); // 🆕 Attente de la suppression image
             }
             await refreshMedia();
+            galleryEvents.notifyNewMedia(); // 🆕 Notification globale après suppression
             if (selectedImage?.id === image.id) {
               handleCloseModal();
             }
@@ -655,42 +690,47 @@ const ModalFullscreenView = ({
     }
 
     if (selectedImage.dimensions) {
-      return imageAspectRatio;
+      const [rawWidth, rawHeight] = selectedImage.dimensions
+        .toLowerCase()
+        .split(/[x×]/)
+        .map(part => Number(part.trim()));
+
+      if (rawWidth > 0 && rawHeight > 0) {
+        return rawWidth / rawHeight;
+      }
     }
 
     if (selectedImage.isVideo) {
       return 9 / 16;
     }
 
-    return 3 / 4;
+    return imageAspectRatio;
   };
 
   const mediaAspectRatio = getMediaAspectRatio();
-  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const { width: fullscreenWidth, height: fullscreenHeight } = Dimensions.get('window');
+  const screenAspectRatio = fullscreenWidth / fullscreenHeight;
 
-  const getMediaDimensions = () => {
-    const safeAreaTop = 60;
-    const safeAreaBottom = 100;
-    const availableHeight = screenHeight - safeAreaTop - safeAreaBottom;
-    const availableWidth = screenWidth * 0.95;
+  const mediaDimensions = useMemo(() => {
+    const isWiderThanScreen = mediaAspectRatio > screenAspectRatio;
 
-    const containerAspectRatio = availableWidth / availableHeight;
-
-    if (mediaAspectRatio > containerAspectRatio) {
+    if (isWiderThanScreen) {
+      const constrainedWidth = fullscreenWidth * 0.95;
       return {
-        width: availableWidth,
-        height: availableWidth / mediaAspectRatio,
-      };
-    } else {
-      const calculatedHeight = Math.min(availableHeight, availableWidth / mediaAspectRatio);
-      return {
-        width: calculatedHeight * mediaAspectRatio,
-        height: calculatedHeight,
+        width: constrainedWidth,
+        height: constrainedWidth / mediaAspectRatio,
       };
     }
-  };
 
-  const mediaDimensions = getMediaDimensions();
+    const maxHeight = fullscreenHeight * 0.8;
+    const constrainedHeight = Math.min(maxHeight, fullscreenWidth / mediaAspectRatio);
+    return {
+      width: constrainedHeight * mediaAspectRatio,
+      height: constrainedHeight,
+    };
+  }, [fullscreenHeight, fullscreenWidth, mediaAspectRatio, screenAspectRatio]); // 🆕 Calcul adaptatif plein écran
+
+  const fullscreenVideoResizeMode = mediaAspectRatio >= screenAspectRatio ? 'contain' : 'contain'; // 🆕 Pas de recadrage en plein écran
 
   return (
     <View style={styles.modalContainer}>
@@ -720,7 +760,7 @@ const ModalFullscreenView = ({
           <Video
             source={{ uri: actualImageUrl }}
             style={[styles.fullscreenMedia, mediaDimensions]}
-            resizeMode="contain"
+            resizeMode={fullscreenVideoResizeMode}
             shouldPlay
             isLooping
             useNativeControls
@@ -735,6 +775,15 @@ const ModalFullscreenView = ({
           />
         )}
       </View>
+
+      {/* 🆕 Affichage discret du prompt en plein écran */}
+      {selectedImage.prompt ? (
+        <View style={styles.fullscreenPromptContainer} pointerEvents="none">
+          <Text style={styles.fullscreenPromptText} numberOfLines={3}>
+            {selectedImage.prompt}
+          </Text>
+        </View>
+      ) : null}
 
       {/* Boutons en bas */}
       <View style={styles.bottomButtonsContainer}>
@@ -961,6 +1010,21 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
   },
+  promptOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 4,
+    paddingHorizontal: 6,
+  },
+  promptText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    opacity: 0.9,
+    fontWeight: '400',
+  },
   imageLoader: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -1077,6 +1141,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     height: '100%',
+  },
+  fullscreenPromptContainer: {
+    position: 'absolute',
+    bottom: 120,
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  fullscreenPromptText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '400',
+    opacity: 0.85,
+    textAlign: 'center',
   },
   bottomButtonsContainer: {
     position: 'absolute',
