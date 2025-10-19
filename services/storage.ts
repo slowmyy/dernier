@@ -489,12 +489,14 @@ class StorageService {
       console.error('❌ [STORAGE] Erreur suppression Supabase:', error);
     }
 
-    const videos = this.getAllVideos();
+    const videos = await this.getAllVideos();
     const filteredVideos = videos.filter(vid => vid.id !== id);
 
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.setItem(this.VIDEOS_STORAGE_KEY, JSON.stringify(filteredVideos));
     }
+
+    galleryEvents.notifyNewMedia(); // 🆕 Notification après suppression d'une vidéo
   }
 
   async clearAllVideos(): Promise<void> {
@@ -538,10 +540,12 @@ class StorageService {
     }
     
     const filteredImages = images.filter(img => img.id !== id);
-    
+
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredImages));
     }
+
+    galleryEvents.notifyNewMedia(); // 🆕 Notification après suppression d'une image
   }
 
   // Vider toute la galerie
