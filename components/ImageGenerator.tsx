@@ -20,7 +20,6 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { runwareService, UserPlan } from '@/services/runware';
 import { storageService } from '@/services/storage';
-import ProfileHeader from '@/components/ProfileHeader';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -641,21 +640,12 @@ export default function ImageGenerator() {
 
   return (
     <View style={styles.container}>
-      {/* ProfileHeader positionné de manière absolue et complètement fixe */}
-      <ProfileHeader />
-      
-      {/* ScrollView avec padding pour éviter le chevauchement */}
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        // Propriétés critiques pour empêcher l'interaction avec l'icône
         scrollEventThrottle={16}
         bounces={true}
-        // S'assurer que le scroll ne peut pas affecter les éléments en position absolue
-        nestedScrollEnabled={false}
-        // Propriétés pour isoler complètement le scroll
-        removeClippedSubviews={false}
       >
         <View style={styles.header}>
           <Text style={styles.title}>Genly</Text>
@@ -1147,8 +1137,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
-    // Padding top très important pour s'assurer que le contenu ne passe jamais sous l'icône
-    paddingTop: 120, // Augmenté encore plus pour être sûr
+    paddingTop: 20,
   },
   header: {
     alignItems: 'center',

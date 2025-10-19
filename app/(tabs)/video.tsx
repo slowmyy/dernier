@@ -38,7 +38,6 @@ import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { runwareService } from '@/services/runware';
 import { storageService } from '@/services/storage';
 import { useFocusEffect } from '@react-navigation/native';
-import ProfileHeader from '@/components/ProfileHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VideoGenerationService } from '@/utils/runware';
 
@@ -516,10 +515,8 @@ export default function VideoGenerator() {
 
   return (
     <View style={styles.container}>
-      <ProfileHeader />
-      
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -909,7 +906,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
-    paddingTop: 120,
+    paddingTop: 20,
   },
   header: {
     alignItems: 'center',

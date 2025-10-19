@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trash2, Download, Share, X, Info, ChevronDown, ChevronUp, Play, Settings, Award, ChevronRight, Edit } from 'lucide-react-native';
@@ -23,7 +24,9 @@ import { router } from 'expo-router';
 
 const { width: screenWidth } = Dimensions.get('window');
 const NUM_COLUMNS = 3;
-const imageSize = (screenWidth - 4) / NUM_COLUMNS;
+const GAP = 2;
+const imageWidth = (screenWidth - (GAP * (NUM_COLUMNS + 1))) / NUM_COLUMNS;
+const imageHeight = imageWidth * 1.4;
 
 type MediaType = 'photos' | 'videos';
 
@@ -174,6 +177,26 @@ export default function Gallery() {
   const [showDetails, setShowDetails] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
   const [username] = useState('username_9221...');
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
@@ -337,7 +360,21 @@ export default function Gallery() {
         </View>
 
         {/* Daily Rewards Card */}
-        <View style={styles.rewardsCard}>
+        <Animated.View
+          style={[
+            styles.rewardsCard,
+            {
+              shadowOpacity: glowAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.3, 0.6],
+              }),
+              shadowRadius: glowAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [8, 16],
+              }),
+            },
+          ]}
+        >
           <View style={styles.rewardsIcon}>
             <Award size={32} color="#FFFFFF" />
           </View>
@@ -346,7 +383,7 @@ export default function Gallery() {
             <Text style={styles.rewardsSubtitle}>Visit the app daily to get free coins</Text>
           </View>
           <ChevronRight size={24} color="#FFFFFF" />
-        </View>
+        </Animated.View>
 
         {/* User Profile Section */}
         <View style={styles.userSection}>
@@ -361,8 +398,23 @@ export default function Gallery() {
           </TouchableOpacity>
         </View>
 
-        {/* Onglets Image/Video */}
-        <View style={styles.tabsContainer}>
+        {/* Onglets Image/Video avec animation sticky */}
+        <Animated.View
+          style={[
+            styles.tabsContainer,
+            {
+              transform: [
+                {
+                  translateY: scrollY.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: [0, -10],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <TouchableOpacity
             style={[
               styles.tab,
@@ -396,7 +448,7 @@ export default function Gallery() {
               Video
             </Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Grille d\'images */}
         <FlatList
@@ -406,6 +458,11 @@ export default function Gallery() {
           numColumns={NUM_COLUMNS}
           contentContainerStyle={styles.gridContainer}
           columnWrapperStyle={styles.row}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>
@@ -745,6 +802,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     gap: 12,
+    shadowColor: '#8B7BA8',
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
   rewardsIcon: {
     width: 48,
@@ -804,7 +864,7 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#000000',
+    backgroundColor: '#1C1C1E',
     paddingHorizontal: 16,
     marginTop: 8,
     marginBottom: 12,
@@ -816,7 +876,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: 'transparent',
   },
   tabActive: {
     backgroundColor: '#007AFF',
@@ -824,7 +884,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: '#FFFFFF',
   },
   tabTextActive: {
     color: '#FFFFFF',
@@ -840,18 +900,18 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   gridContainer: {
-    paddingHorizontal: 1,
+    paddingHorizontal: GAP,
     paddingTop: 0,
     paddingBottom: 48,
   },
   row: {
     justifyContent: 'flex-start',
-    gap: 1,
+    gap: GAP,
   },
   imageItem: {
-    width: imageSize,
-    height: imageSize,
-    marginBottom: 1,
+    width: imageWidth,
+    height: imageHeight,
+    marginBottom: GAP,
     backgroundColor: '#1C1C1E',
     justifyContent: 'center',
     alignItems: 'center',

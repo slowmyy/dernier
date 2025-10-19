@@ -36,7 +36,6 @@ import {
   PIXVERSE_EFFECTS,
   PIXVERSE_STYLES
 } from '@/services/pixverse';
-import ProfileHeader from '@/components/ProfileHeader';
 
 type EffectType = 'image' | 'pixverse_video';
 
@@ -346,7 +345,6 @@ export default function Effects() {
 
     return (
       <View style={styles.container}>
-        <ProfileHeader />
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
             <Text style={styles.title}>Effets IA</Text>
@@ -409,7 +407,6 @@ export default function Effects() {
 
   return (
     <View style={[styles.container, { backgroundColor: selectedEffect.backgroundColor }]}>
-      <ProfileHeader />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.effectHeader}>
           <TouchableOpacity style={styles.backButton} onPress={handleBackToGallery}>
