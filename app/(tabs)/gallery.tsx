@@ -60,6 +60,17 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
     onPress({ ...item, resolvedUrl });
   }, [actualUrl, item, onPress]);
 
+  const getVideoAspectRatio = () => {
+    if (item.videoWidth && item.videoHeight) {
+      return item.videoWidth / item.videoHeight;
+    }
+    return 9 / 16;
+  };
+
+  const videoAspectRatio = getVideoAspectRatio();
+  const itemAspectRatio = imageWidth / imageHeight;
+  const resizeMode = videoAspectRatio > itemAspectRatio ? 'contain' : 'cover';
+
   return (
     <TouchableOpacity
       style={styles.imageItem}
@@ -82,7 +93,7 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
       <Video
         source={{ uri: actualUrl }}
         style={styles.thumbnailImage}
-        resizeMode="cover"
+        resizeMode={resizeMode}
         shouldPlay={false}
         isLooping={false}
         isMuted
@@ -660,6 +671,10 @@ const ModalFullscreenView = ({
       return imageAspectRatio;
     }
 
+    if (selectedImage.isVideo) {
+      return 9 / 16;
+    }
+
     return 3 / 4;
   };
 
@@ -667,18 +682,23 @@ const ModalFullscreenView = ({
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
   const getMediaDimensions = () => {
-    const availableHeight = screenHeight * 0.7;
+    const safeAreaTop = 60;
+    const safeAreaBottom = 100;
+    const availableHeight = screenHeight - safeAreaTop - safeAreaBottom;
     const availableWidth = screenWidth * 0.95;
 
-    if (mediaAspectRatio > availableWidth / availableHeight) {
+    const containerAspectRatio = availableWidth / availableHeight;
+
+    if (mediaAspectRatio > containerAspectRatio) {
       return {
         width: availableWidth,
         height: availableWidth / mediaAspectRatio,
       };
     } else {
+      const calculatedHeight = Math.min(availableHeight, availableWidth / mediaAspectRatio);
       return {
-        width: availableHeight * mediaAspectRatio,
-        height: availableHeight,
+        width: calculatedHeight * mediaAspectRatio,
+        height: calculatedHeight,
       };
     }
   };
@@ -1061,6 +1081,7 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000000',
   },
   fullscreenMedia: {
     maxWidth: '100%',
