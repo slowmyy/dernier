@@ -599,11 +599,11 @@ export default function Gallery() {
   );
 }
 
-const ModalFullscreenView = ({ 
-  selectedImage, 
-  onClose, 
-  onDownload, 
-  onShare, 
+const ModalFullscreenView = ({
+  selectedImage,
+  onClose,
+  onDownload,
+  onShare,
   onDelete,
   onAnimate,
   isDownloading,
@@ -618,6 +618,8 @@ const ModalFullscreenView = ({
   isDownloading: boolean;
   isSharing: boolean;
 }) => {
+  if (!selectedImage) return null;
+
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(true);
 
@@ -691,8 +693,6 @@ const ModalFullscreenView = ({
       isMounted = false;
     };
   }, [selectedImage]);
-
-  if (!selectedImage) return null;
 
   const getMediaAspectRatio = () => {
     if (selectedImage.isVideo && selectedImage.videoWidth && selectedImage.videoHeight) {
