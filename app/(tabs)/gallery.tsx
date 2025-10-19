@@ -77,19 +77,6 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
       onPress={handlePress}
       activeOpacity={0.8}
     >
-      <View style={styles.videoOverlay}>
-        <View style={styles.playIconContainer}>
-          <Play size={24} color="#FFFFFF" fill="#FFFFFF" />
-        </View>
-        {item.duration && (
-          <View style={styles.durationBadge}>
-            <Text style={styles.durationText}>
-              {Math.floor(item.duration)}s
-            </Text>
-          </View>
-        )}
-      </View>
-
       <Video
         source={{ uri: actualUrl }}
         style={styles.thumbnailImage}
@@ -752,11 +739,11 @@ const ModalFullscreenView = ({
       {/* Boutons en bas */}
       <View style={styles.bottomButtonsContainer}>
         <TouchableOpacity
-          style={[styles.bottomButton, isDownloading && styles.bottomButtonDisabled]}
+          style={[styles.bottomButton, styles.downloadButton, isDownloading && styles.bottomButtonDisabled]}
           onPress={() => onDownload(selectedImage)}
           disabled={isDownloading}
         >
-          <Download size={24} color="#FFFFFF" />
+          <Download size={22} color="#FFFFFF" strokeWidth={2.5} />
           <Text style={styles.bottomButtonText}>
             {isDownloading ? 'Téléchargement...' : 'Télécharger'}
           </Text>
@@ -1084,8 +1071,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   fullscreenMedia: {
-    maxWidth: '100%',
-    maxHeight: '100%',
   },
   modalImageLoading: {
     justifyContent: 'center',
@@ -1116,6 +1101,10 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  downloadButton: {
+    backgroundColor: '#007AFF',
+    borderColor: 'rgba(0, 122, 255, 0.3)',
   },
   bottomButtonDisabled: {
     opacity: 0.5,
