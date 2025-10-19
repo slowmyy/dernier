@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   Image,
   TouchableOpacity,
   Alert,
@@ -12,8 +11,15 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
-  Animated,
+  Animated as RNAnimated,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolate,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trash2, Download, Share, X, Info, ChevronDown, ChevronUp, Play, Settings, Award, ChevronRight, Edit } from 'lucide-react-native';
 import { storageService, StoredImage } from '@/services/storage';
@@ -178,18 +184,18 @@ export default function Gallery() {
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
   const [username] = useState('username_9221...');
 
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
+  const scrollY = useSharedValue(0);
+  const glowAnim = useRef(new RNAnimated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
+    RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(glowAnim, {
           toValue: 1,
           duration: 2000,
           useNativeDriver: false,
         }),
-        Animated.timing(glowAnim, {
+        RNAnimated.timing(glowAnim, {
           toValue: 0,
           duration: 2000,
           useNativeDriver: false,
@@ -197,6 +203,36 @@ export default function Gallery() {
       ])
     ).start();
   }, []);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    // Phase 1 (0-80px): parallax léger, le header suit à 85 % du scroll
+    // Phase 2 (80-120px): transition progressive vers la synchronisation complète
+    // Phase 3 (>120px): déplacement identique au contenu pour rester aligné
+    const translateY = interpolate(
+      scrollY.value,
+      [0, 80, 120],
+      [0, -68, -120],
+      Extrapolate.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollY.value,
+      [0, 100],
+      [1, 0.96],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }],
+      opacity,
+    };
+  });
 
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
@@ -343,131 +379,108 @@ export default function Gallery() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        {/* Header avec PRO badge */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Profil</Text>
-          <View style={styles.headerRight}>
-            <View style={styles.proBadge}>
-              <Text style={styles.proText}>PRO</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => router.push('/profile')}
-            >
-              <Settings size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Daily Rewards Card */}
-        <Animated.View
-          style={[
-            styles.rewardsCard,
-            {
-              shadowOpacity: glowAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.3, 0.6],
-              }),
-              shadowRadius: glowAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [8, 16],
-              }),
-            },
-          ]}
-        >
-          <View style={styles.rewardsIcon}>
-            <Award size={32} color="#FFFFFF" />
-          </View>
-          <View style={styles.rewardsContent}>
-            <Text style={styles.rewardsTitle}>Daily Rewards</Text>
-            <Text style={styles.rewardsSubtitle}>Visit the app daily to get free coins</Text>
-          </View>
-          <ChevronRight size={24} color="#FFFFFF" />
-        </Animated.View>
-
-        {/* User Profile Section */}
-        <View style={styles.userSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>U</Text>
-            </View>
-          </View>
-          <Text style={styles.username}>{username}</Text>
-          <TouchableOpacity style={styles.editButton}>
-            <Edit size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Onglets Image/Video avec animation sticky */}
-        <Animated.View
-          style={[
-            styles.tabsContainer,
-            {
-              opacity: scrollY.interpolate({
-                inputRange: [0, 150],
-                outputRange: [1, 0.96],
-                extrapolate: 'clamp',
-              }),
-              transform: [
-                {
-                  translateY: scrollY.interpolate({
-                    inputRange: [0, 150],
-                    outputRange: [0, -8],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeFilter === 'photos' && styles.tabActive,
-            ]}
-            onPress={() => setActiveFilter('photos')}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeFilter === 'photos' && styles.tabTextActive,
-              ]}
-            >
-              Image
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeFilter === 'videos' && styles.tabActive,
-            ]}
-            onPress={() => setActiveFilter('videos')}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeFilter === 'videos' && styles.tabTextActive,
-              ]}
-            >
-              Video
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Grille d\'images */}
-        <FlatList
+        <Animated.FlatList
           data={filteredMedia}
           renderItem={renderImageItem}
           keyExtractor={keyExtractor}
           numColumns={NUM_COLUMNS}
           contentContainerStyle={styles.gridContainer}
           columnWrapperStyle={styles.row}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
-          scrollEventThrottle={16}
+          ListHeaderComponent={
+            <Animated.View style={headerAnimatedStyle}>
+              {/* Header avec PRO badge */}
+              <View style={styles.header}>
+                <Text style={styles.title}>Profil</Text>
+                <View style={styles.headerRight}>
+                  <View style={styles.proBadge}>
+                    <Text style={styles.proText}>PRO</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.settingsButton}
+                    onPress={() => router.push('/profile')}
+                  >
+                    <Settings size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Daily Rewards Card */}
+              <RNAnimated.View
+                style={[
+                  styles.rewardsCard,
+                  {
+                    shadowOpacity: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.3, 0.6],
+                    }),
+                    shadowRadius: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [8, 16],
+                    }),
+                  },
+                ]}
+              >
+                <View style={styles.rewardsIcon}>
+                  <Award size={32} color="#FFFFFF" />
+                </View>
+                <View style={styles.rewardsContent}>
+                  <Text style={styles.rewardsTitle}>Daily Rewards</Text>
+                  <Text style={styles.rewardsSubtitle}>Visit the app daily to get free coins</Text>
+                </View>
+                <ChevronRight size={24} color="#FFFFFF" />
+              </RNAnimated.View>
+
+              {/* User Profile Section */}
+              <View style={styles.userSection}>
+                <View style={styles.avatarContainer}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>U</Text>
+                  </View>
+                </View>
+                <Text style={styles.username}>{username}</Text>
+                <TouchableOpacity style={styles.editButton}>
+                  <Edit size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Onglets Image/Video */}
+              <View style={styles.tabsContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    activeFilter === 'photos' && styles.tabActive,
+                  ]}
+                  onPress={() => setActiveFilter('photos')}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeFilter === 'photos' && styles.tabTextActive,
+                    ]}
+                  >
+                    Image
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    activeFilter === 'videos' && styles.tabActive,
+                  ]}
+                  onPress={() => setActiveFilter('videos')}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeFilter === 'videos' && styles.tabTextActive,
+                    ]}
+                  >
+                    Video
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>
@@ -492,6 +505,8 @@ export default function Gallery() {
           updateCellsBatchingPeriod={100}
           initialNumToRender={6}
           windowSize={10}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
         />
 
         {/* Modal d\'affichage */}
