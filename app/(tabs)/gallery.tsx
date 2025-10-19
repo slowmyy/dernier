@@ -83,7 +83,7 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
 
   const videoAspectRatio = getVideoAspectRatio();
   const itemAspectRatio = imageWidth / imageHeight;
-  const thumbnailResizeMode = videoAspectRatio > itemAspectRatio ? 'contain' : 'cover';
+  const thumbnailResizeMode = 'cover';
   const videoSourceUri = actualUrl && actualUrl.trim() !== '' ? actualUrl : item.url;
 
   return (
@@ -297,7 +297,7 @@ export default function Gallery() {
     }
   }, []);
 
-  const handleDeleteImage = useCallback((image: StoredImage) => {
+  const handleDeleteImage = useCallback(async (image: StoredImage) => {
     Alert.alert(
       `Supprimer ${image.isVideo ? 'la vidéo' : 'l\'image'}`,
       `Êtes-vous sûr de vouloir supprimer ${image.isVideo ? 'cette vidéo' : 'cette image'} ?`,
@@ -307,15 +307,25 @@ export default function Gallery() {
           text: 'Supprimer',
           style: 'destructive',
           onPress: async () => {
-            if (image.isVideo) {
-              await storageService.deleteVideo(image.id); // 🆕 Attente de la suppression vidéo
-            } else {
-              await storageService.deleteImage(image.id); // 🆕 Attente de la suppression image
-            }
-            await refreshMedia();
-            galleryEvents.notifyNewMedia(); // 🆕 Notification globale après suppression
-            if (selectedImage?.id === image.id) {
-              handleCloseModal();
+            try {
+              console.log('🗑️ Suppression du média:', image.id);
+
+              if (selectedImage?.id === image.id) {
+                handleCloseModal();
+              }
+
+              if (image.isVideo) {
+                await storageService.deleteVideo(image.id);
+              } else {
+                await storageService.deleteImage(image.id);
+              }
+
+              await refreshMedia();
+
+              console.log('✅ Média supprimé avec succès');
+            } catch (error) {
+              console.error('❌ Erreur lors de la suppression:', error);
+              Alert.alert('Erreur', 'Impossible de supprimer le média');
             }
           },
         },
@@ -709,28 +719,29 @@ const ModalFullscreenView = ({
 
   const mediaAspectRatio = getMediaAspectRatio();
   const { width: fullscreenWidth, height: fullscreenHeight } = Dimensions.get('window');
-  const screenAspectRatio = fullscreenWidth / fullscreenHeight;
 
   const mediaDimensions = useMemo(() => {
-    const isWiderThanScreen = mediaAspectRatio > screenAspectRatio;
+    const safeAreaTop = 60;
+    const safeAreaBottom = 140;
+    const availableHeight = fullscreenHeight - safeAreaTop - safeAreaBottom;
+    const availableWidth = fullscreenWidth * 0.98;
 
-    if (isWiderThanScreen) {
-      const constrainedWidth = fullscreenWidth * 0.95;
+    const containerAspectRatio = availableWidth / availableHeight;
+
+    if (mediaAspectRatio > containerAspectRatio) {
       return {
-        width: constrainedWidth,
-        height: constrainedWidth / mediaAspectRatio,
+        width: availableWidth,
+        height: availableWidth / mediaAspectRatio,
+      };
+    } else {
+      return {
+        width: availableHeight * mediaAspectRatio,
+        height: availableHeight,
       };
     }
+  }, [fullscreenHeight, fullscreenWidth, mediaAspectRatio]);
 
-    const maxHeight = fullscreenHeight * 0.8;
-    const constrainedHeight = Math.min(maxHeight, fullscreenWidth / mediaAspectRatio);
-    return {
-      width: constrainedHeight * mediaAspectRatio,
-      height: constrainedHeight,
-    };
-  }, [fullscreenHeight, fullscreenWidth, mediaAspectRatio, screenAspectRatio]); // 🆕 Calcul adaptatif plein écran
-
-  const fullscreenVideoResizeMode = mediaAspectRatio >= screenAspectRatio ? 'contain' : 'contain'; // 🆕 Pas de recadrage en plein écran
+  const fullscreenVideoResizeMode = 'contain';
 
   return (
     <View style={styles.modalContainer}>
@@ -1144,20 +1155,21 @@ const styles = StyleSheet.create({
   },
   fullscreenPromptContainer: {
     position: 'absolute',
-    bottom: 120,
-    left: 20,
-    right: 20,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    bottom: 110,
+    left: 16,
+    right: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backdropFilter: 'blur(10px)',
   },
   fullscreenPromptText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '400',
-    opacity: 0.85,
-    textAlign: 'center',
+    opacity: 0.9,
+    lineHeight: 18,
   },
   bottomButtonsContainer: {
     position: 'absolute',
