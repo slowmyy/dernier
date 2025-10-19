@@ -21,7 +21,7 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trash2, Download, Share, Play, Settings, Award, ChevronRight, Edit } from 'lucide-react-native';
+import { Trash2, Download, Share, Play, Settings, Award, ChevronRight, Edit, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { storageService, StoredImage } from '@/services/storage';
 import { galleryEvents } from '@/services/galleryEvents'; // 🆕 Import pour notifier les mises à jour de galerie
 import { Video } from 'expo-av';
@@ -622,6 +622,7 @@ const ModalFullscreenView = ({
 
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(true);
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
 
   const imageAspectRatio = useMemo(() => {
     if (selectedImage?.dimensions) {
@@ -787,13 +788,28 @@ const ModalFullscreenView = ({
         )}
       </View>
 
-      {/* 🆕 Affichage discret du prompt en plein écran */}
+      {/* Affichage expandable du prompt en plein écran */}
       {selectedImage.prompt ? (
-        <View style={styles.fullscreenPromptContainer} pointerEvents="none">
-          <Text style={styles.fullscreenPromptText} numberOfLines={3}>
+        <TouchableOpacity
+          style={styles.fullscreenPromptContainer}
+          onPress={() => setIsPromptExpanded(!isPromptExpanded)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.promptHeader}>
+            <Text style={styles.promptTitle}>Détails de Création</Text>
+            {isPromptExpanded ? (
+              <ChevronUp size={20} color="#FFFFFF" strokeWidth={2} />
+            ) : (
+              <ChevronDown size={20} color="#FFFFFF" strokeWidth={2} />
+            )}
+          </View>
+          <Text
+            style={styles.fullscreenPromptText}
+            numberOfLines={isPromptExpanded ? undefined : 1}
+          >
             {selectedImage.prompt}
           </Text>
-        </View>
+        </TouchableOpacity>
       ) : null}
 
       {/* Boutons en bas */}
@@ -1159,17 +1175,28 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     borderRadius: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backdropFilter: 'blur(10px)',
+  },
+  promptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  promptTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    opacity: 0.95,
   },
   fullscreenPromptText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '400',
-    opacity: 0.9,
-    lineHeight: 18,
+    opacity: 0.85,
+    lineHeight: 19,
   },
   bottomButtonsContainer: {
     position: 'absolute',
