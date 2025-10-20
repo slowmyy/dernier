@@ -292,17 +292,20 @@ export default function Gallery() {
             try {
               console.log('🗑️ Suppression du média:', image.id);
 
-              if (selectedImage?.id === image.id) {
-                handleCloseModal();
-              }
-
+              // Suppression du média
               if (image.isVideo) {
                 await storageService.deleteVideo(image.id);
               } else {
                 await storageService.deleteImage(image.id);
               }
 
+              // Rafraîchissement de la galerie
               await refreshMedia();
+
+              // Fermeture du modal APRÈS la suppression
+              if (selectedImage?.id === image.id) {
+                handleCloseModal();
+              }
 
               console.log('✅ Média supprimé avec succès');
             } catch (error) {
@@ -948,14 +951,11 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#2C2C2E',
-    paddingHorizontal: 16,
+    backgroundColor: '#1C1C1E',
+    paddingHorizontal: 4,
     paddingVertical: 4,
     marginTop: 8,
     marginBottom: 12,
-    borderRadius: 12,
-    marginHorizontal: 16,
-    overflow: 'hidden',
   },
   tab: {
     flex: 1,
