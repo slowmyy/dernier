@@ -951,20 +951,18 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1C1C1E',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
     marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 16,
+    gap: 8,
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: 'transparent',
-    marginHorizontal: 2,
+    borderRadius: 12,
+    backgroundColor: '#2C2C2E',
   },
   tabActive: {
     backgroundColor: '#007AFF',
@@ -972,7 +970,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#8E8E93',
   },
   tabTextActive: {
     color: '#FFFFFF',
