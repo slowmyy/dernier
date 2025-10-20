@@ -714,16 +714,20 @@ const MediaItem = ({
       return {
         width: availableWidth,
         height: availableWidth / mediaAspectRatio,
+        maxWidth: availableWidth,
+        maxHeight: availableHeight,
       };
     } else {
       return {
         width: availableHeight * mediaAspectRatio,
         height: availableHeight,
+        maxWidth: availableWidth,
+        maxHeight: availableHeight,
       };
     }
   }, [fullscreenHeight, fullscreenWidth, mediaAspectRatio]);
 
-  const fullscreenVideoResizeMode = ResizeMode.COVER;
+  const fullscreenVideoResizeMode = ResizeMode.CONTAIN;
 
   return (
     <View style={styles.mediaItemContainer}>
@@ -734,14 +738,16 @@ const MediaItem = ({
             <ActivityIndicator size="large" color="#007AFF" />
           </View>
         ) : item.isVideo ? (
-          <Video
-            source={{ uri: actualImageUrl }}
-            style={[styles.fullscreenMedia, mediaDimensions]}
-            resizeMode={fullscreenVideoResizeMode}
-            shouldPlay
-            isLooping
-            useNativeControls
-          />
+          <View style={styles.videoWrapper}>
+            <Video
+              source={{ uri: actualImageUrl }}
+              style={[styles.fullscreenMedia, mediaDimensions]}
+              resizeMode={fullscreenVideoResizeMode}
+              shouldPlay
+              isLooping
+              useNativeControls
+            />
+          </View>
         ) : (
           <Image
             source={{ uri: actualImageUrl }}
@@ -1238,6 +1244,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000000',
+  },
+  videoWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fullscreenMedia: {
   },
