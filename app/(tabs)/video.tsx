@@ -16,23 +16,7 @@ import {
   Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Video, 
-  Play, 
-  Pause, 
-  Download, 
-  Share, 
-  RefreshCw, 
-  Settings, 
-  Sparkles,
-  Film,
-  Clock,
-  Zap,
-  Brain,
-  Cpu,
-  Upload,
-  X
-} from 'lucide-react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { runwareService } from '@/services/runware';
@@ -146,7 +130,15 @@ export default function VideoGenerator() {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   // Icônes de chargement qui tournent
-  const loadingIcons = [Brain, Cpu, Sparkles, Zap];
+  const loadingIcons = ['brain', 'cpu-64-bit', 'sparkles', 'flash'];
+
+  const renderLoadingIcon = (index: number, size: number, color: string) => {
+    const iconName = loadingIcons[index];
+    if (iconName === 'brain' || iconName === 'cpu-64-bit') {
+      return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
+    }
+    return <Ionicons name={iconName as any} size={size} color={color} />;
+  };
 
   // Service de génération vidéo
   const videoService = useRef<VideoGenerationService | null>(null);
@@ -522,7 +514,7 @@ export default function VideoGenerator() {
       >
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Film size={32} color="#FF6B35" />
+            <Ionicons name="film" size={32} color="#FF6B35" />
             <Text style={styles.title}>Générateur Vidéo</Text>
           </View>
           <Text style={styles.subtitle}>Standard • Pro • Ultra</Text>
@@ -546,7 +538,7 @@ export default function VideoGenerator() {
           <View style={styles.labelRow}>
             <Text style={styles.label}>Décrivez votre vidéo</Text>
             <TouchableOpacity style={styles.randomButton} onPress={handleRandomPrompt}>
-              <RefreshCw size={16} color="#FF6B35" />
+              <Ionicons name="refresh" size={16} color="#FF6B35" />
               <Text style={styles.randomButtonText}>Inspiration</Text>
             </TouchableOpacity>
           </View>
@@ -622,7 +614,7 @@ export default function VideoGenerator() {
           style={styles.advancedToggle}
           onPress={() => setShowAdvanced(!showAdvanced)}
         >
-          <Settings size={16} color="#FF6B35" />
+          <Ionicons name="settings" size={16} color="#FF6B35" />
           <Text style={styles.advancedToggleText}>
             {showAdvanced ? 'Masquer' : 'Afficher'} les options avancées
           </Text>
@@ -641,12 +633,12 @@ export default function VideoGenerator() {
                   style={styles.removeReferenceButton}
                   onPress={handleRemoveReferenceImage}
                 >
-                  <X size={20} color="#FFFFFF" />
+                  <Ionicons name="close" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity style={styles.importButton} onPress={handleImportImage}>
-                <Upload size={24} color="#FF6B35" />
+                <Ionicons name="cloud-upload" size={24} color="#FF6B35" />
                 <Text style={styles.importButtonText}>Importer une image</Text>
                 <Text style={styles.importButtonSubtext}>Optionnel - pour image-to-video</Text>
               </TouchableOpacity>
@@ -666,12 +658,9 @@ export default function VideoGenerator() {
           <View style={styles.buttonContent}>
             <Animated.View style={[styles.buttonIconContainer, { transform: [{ scale: pulseAnim }] }]}>
               {isGenerating ? (
-                React.createElement(loadingIcons[loadingIconIndex], { 
-                  size: 24, 
-                  color: "#FFFFFF" 
-                })
+                renderLoadingIcon(loadingIconIndex, 24, "#FFFFFF")
               ) : (
-                <Video size={24} color="#FFFFFF" />
+                <Ionicons name="videocam" size={24} color="#FFFFFF" />
               )}
             </Animated.View>
             <View style={styles.buttonTextContainer}>
@@ -729,10 +718,7 @@ export default function VideoGenerator() {
                     styles.loadingIconInFrame,
                     { transform: [{ scale: pulseAnim }] }
                   ]}>
-                    {React.createElement(loadingIcons[loadingIconIndex], { 
-                      size: 48, 
-                      color: "#FF6B35" 
-                    })}
+                    {renderLoadingIcon(loadingIconIndex, 48, "#FF6B35")}
                   </Animated.View>
                   <Text style={styles.loadingTextInFrame}>
                     Création de votre vidéo...
@@ -846,14 +832,14 @@ export default function VideoGenerator() {
               <>
                 <View style={styles.actionButtons}>
                   <TouchableOpacity style={styles.actionButton} onPress={handleDownload}>
-                    <Download size={20} color="#FF6B35" />
+                    <Ionicons name="download" size={20} color="#FF6B35" />
                     <Text style={styles.actionButtonText}>
                       {Platform.OS === 'web' ? 'Télécharger' : 'Sauvegarder'}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-                    <Share size={20} color="#FF6B35" />
+                    <Ionicons name="share-social" size={20} color="#FF6B35" />
                     <Text style={styles.actionButtonText}>Partager</Text>
                   </TouchableOpacity>
                 </View>

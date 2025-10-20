@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { User } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -31,7 +31,7 @@ export default function ProfileHeader({ onPress }: ProfileHeaderProps) {
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        <User size={24} color="#007AFF" />
+        <Ionicons name="person" size={24} color="#007AFF" />
       </TouchableOpacity>
     </View>
   );

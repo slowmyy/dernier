@@ -22,7 +22,7 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trash2, Download, Share, Play, Settings, Award, ChevronRight, Edit, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { storageService, StoredImage } from '@/services/storage';
 import { galleryEvents } from '@/services/galleryEvents'; // 🆕 Import pour notifier les mises à jour de galerie
 import { Video } from 'expo-av';
@@ -452,7 +452,7 @@ export default function Gallery() {
                     style={styles.settingsButton}
                     onPress={() => router.push('/profile')}
                   >
-                    <Settings size={24} color="#FFFFFF" />
+                    <Ionicons name="settings" size={24} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -474,13 +474,13 @@ export default function Gallery() {
                 ]}
               >
                 <View style={styles.rewardsIcon}>
-                  <Award size={32} color="#FFFFFF" />
+                  <Ionicons name="trophy" size={32} color="#FFFFFF" />
                 </View>
                 <View style={styles.rewardsContent}>
                   <Text style={styles.rewardsTitle}>Daily Rewards</Text>
                   <Text style={styles.rewardsSubtitle}>Visit the app daily to get free coins</Text>
                 </View>
-                <ChevronRight size={24} color="#FFFFFF" />
+                <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
               </RNAnimated.View>
 
               {/* User Profile Section */}
@@ -492,7 +492,7 @@ export default function Gallery() {
                 </View>
                 <Text style={styles.username}>{username}</Text>
                 <TouchableOpacity style={styles.editButton}>
-                  <Edit size={20} color="#FFFFFF" />
+                  <Ionicons name="create" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
 
@@ -763,9 +763,9 @@ const MediaItem = ({
           <View style={styles.promptHeader}>
             <Text style={styles.promptTitle}>Détails de Création</Text>
             {isPromptExpanded ? (
-              <ChevronUp size={20} color="#FFFFFF" strokeWidth={2} />
+              <Ionicons name="chevron-up" size={20} color="#FFFFFF" />
             ) : (
-              <ChevronDown size={20} color="#FFFFFF" strokeWidth={2} />
+              <Ionicons name="chevron-down" size={20} color="#FFFFFF" />
             )}
           </View>
           <Text
@@ -784,7 +784,7 @@ const MediaItem = ({
           onPress={() => onDownload(item)}
           disabled={isDownloading}
         >
-          <Download size={22} color="#FFFFFF" strokeWidth={2.5} />
+          <Ionicons name="download" size={22} color="#FFFFFF" />
           <Text style={styles.bottomButtonText}>
             {isDownloading ? 'Téléchargement...' : 'Télécharger'}
           </Text>
@@ -795,7 +795,7 @@ const MediaItem = ({
             style={styles.bottomButton}
             onPress={() => onAnimate(item)}
           >
-            <Play size={24} color="#FFFFFF" />
+            <Ionicons name="play" size={24} color="#FFFFFF" />
             <Text style={styles.bottomButtonText}>Animer</Text>
           </TouchableOpacity>
         )}
@@ -805,7 +805,7 @@ const MediaItem = ({
           onPress={() => onShare(item)}
           disabled={isSharing}
         >
-          <Share size={24} color="#FFFFFF" />
+          <Ionicons name="share-social" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </View>
@@ -881,7 +881,7 @@ const ModalFullscreenView = ({
         style={styles.deleteButtonTopRight}
         onPress={() => onDelete(currentMedia)}
       >
-        <Trash2 size={24} color="#FF3B30" />
+        <Ionicons name="trash" size={24} color="#FF3B30" />
       </TouchableOpacity>
 
       {/* FlatList avec pagination verticale */}

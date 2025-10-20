@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Image, Video, FolderOpen, Sparkles } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
@@ -19,7 +19,7 @@ export default function TabLayout() {
         options={{
           title: 'Effet',
           tabBarIcon: ({ size, color }) => (
-            <Sparkles size={size} color={color} />
+            <Ionicons name="sparkles" size={size} color={color} />
           ),
         }}
       />
@@ -28,7 +28,7 @@ export default function TabLayout() {
         options={{
           title: 'Image',
           tabBarIcon: ({ size, color }) => (
-            <Image size={size} color={color} />
+            <Ionicons name="image" size={size} color={color} />
           ),
         }}
       />
@@ -37,7 +37,7 @@ export default function TabLayout() {
         options={{
           title: 'Vidéo',
           tabBarIcon: ({ size, color }) => (
-            <Video size={size} color={color} />
+            <Ionicons name="videocam" size={size} color={color} />
           ),
         }}
       />
@@ -46,7 +46,7 @@ export default function TabLayout() {
         options={{
           title: 'Galerie',
           tabBarIcon: ({ size, color }) => (
-            <FolderOpen size={size} color={color} />
+            <Ionicons name="folder-open" size={size} color={color} />
           ),
         }}
       />

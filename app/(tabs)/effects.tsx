@@ -13,20 +13,7 @@ import {
   Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Camera,
-  CreditCard,
-  Star,
-  RotateCcw,
-  Package,
-  Upload,
-  Download,
-  Share,
-  ArrowLeft,
-  Sparkles,
-  Play,
-  Film
-} from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Video } from 'expo-av';
 import { runwareService } from '@/services/runware';
@@ -355,7 +342,7 @@ export default function Effects() {
                 style={[styles.tab, activeTab === 'image' && styles.tabActive]}
                 onPress={() => setActiveTab('image')}
               >
-                <Camera size={20} color={activeTab === 'image' ? '#007AFF' : '#666'} />
+                <Ionicons name="camera" size={20} color={activeTab === 'image' ? '#007AFF' : '#666'} />
                 <Text style={[styles.tabText, activeTab === 'image' && styles.tabTextActive]}>
                   Effets Image
                 </Text>
@@ -365,7 +352,7 @@ export default function Effects() {
                 style={[styles.tab, activeTab === 'video' && styles.tabActive]}
                 onPress={() => setActiveTab('video')}
               >
-                <Film size={20} color={activeTab === 'video' ? '#FF6B35' : '#666'} />
+                <Ionicons name="film" size={20} color={activeTab === 'video' ? '#FF6B35' : '#666'} />
                 <Text style={[styles.tabText, activeTab === 'video' && styles.tabTextActive]}>
                   PixVerse Video
                 </Text>
@@ -410,7 +397,7 @@ export default function Effects() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.effectHeader}>
           <TouchableOpacity style={styles.backButton} onPress={handleBackToGallery}>
-            <ArrowLeft size={24} color={selectedEffect.color} />
+            <Ionicons name="arrow-back" size={24} color={selectedEffect.color} />
           </TouchableOpacity>
           <Text style={[styles.effectHeaderTitle, { color: selectedEffect.color }]}>
             {selectedEffect.title}
@@ -444,7 +431,7 @@ export default function Effects() {
                       <Image source={{ uri: uploadedImages[index] }} style={styles.uploadedImage} />
                     ) : (
                       <View style={styles.uploadPlaceholder}>
-                        <Upload size={32} color={selectedEffect.color} />
+                        <Ionicons name="cloud-upload" size={32} color={selectedEffect.color} />
                         <Text style={[styles.uploadText, { color: selectedEffect.color }]}>
                           Image {index + 1}
                         </Text>
@@ -549,14 +536,14 @@ export default function Effects() {
 
               <View style={styles.actionButtons}>
                 <TouchableOpacity style={styles.actionButton} onPress={handleDownload}>
-                  <Download size={20} color={selectedEffect.color} />
+                  <Ionicons name="download" size={20} color={selectedEffect.color} />
                   <Text style={[styles.actionButtonText, { color: selectedEffect.color }]}>
                     Télécharger
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-                  <Share size={20} color={selectedEffect.color} />
+                  <Ionicons name="share-social" size={20} color={selectedEffect.color} />
                   <Text style={[styles.actionButtonText, { color: selectedEffect.color }]}>
                     Partager
                   </Text>

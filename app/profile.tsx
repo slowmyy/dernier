@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Crown, User, Info, CircleHelp as HelpCircle, ArrowLeft, LogOut } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { runwareService, UserPlan } from '@/services/runware';
 import { authService, UserCredential } from '@/services/auth';
@@ -99,7 +99,7 @@ export default function Profile() {
         )}
       </View>
       {isPremium && (
-        <Crown size={20} color="#FFD700" />
+        <Ionicons name="crown" size={20} color="#FFD700" />
       )}
     </TouchableOpacity>
   );
@@ -111,7 +111,7 @@ export default function Profile() {
           style={styles.backButton} 
           onPress={() => router.back()}
         >
-          <ArrowLeft size={24} color="#007AFF" />
+          <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profil</Text>
         <View style={styles.headerSpacer} />
@@ -121,9 +121,9 @@ export default function Profile() {
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             {userCredential?.isGuest ? (
-              <User size={32} color="#666666" />
+              <Ionicons name="person" size={32} color="#666666" />
             ) : (
-              <User size={32} color="#007AFF" />
+              <Ionicons name="person" size={32} color="#007AFF" />
             )}
           </View>
           <Text style={styles.title}>{displayName}</Text>
@@ -137,7 +137,7 @@ export default function Profile() {
           <Text style={styles.sectionTitle}>Abonnement Actuel</Text>
           <View style={[styles.planCard, userPlan.isPremium ? styles.premiumPlanCard : styles.freePlanCard]}>
             <View style={styles.planHeader}>
-              {userPlan.isPremium && <Crown size={24} color="#FFD700" />}
+              {userPlan.isPremium && <Ionicons name="crown" size={24} color="#FFD700" />}
               <Text style={[styles.planName, userPlan.isPremium ? styles.premiumPlanName : styles.freePlanName]}>
                 {userPlan.isPremium ? 'Premium' : 'Gratuit'}
               </Text>
@@ -159,7 +159,7 @@ export default function Profile() {
           <Text style={styles.sectionTitle}>Compte</Text>
           
           <SettingItem
-            icon={<Crown size={24} color={userPlan.isPremium ? "#FFD700" : "#007AFF"} />}
+            icon={<Ionicons name="crown" size={24} color={userPlan.isPremium ? "#FFD700" : "#007AFF"} />}
             title={userPlan.isPremium ? "Passer en Gratuit" : "Passer Premium"}
             subtitle={userPlan.isPremium 
               ? "Revenir au modèle gratuit" 
@@ -170,7 +170,7 @@ export default function Profile() {
           />
 
           <SettingItem
-            icon={<User size={24} color="#666666" />}
+            icon={<Ionicons name="person" size={24} color="#666666" />}
             title="Paramètres du compte"
             subtitle="Gérez votre profil et vos préférences"
           />
@@ -180,19 +180,19 @@ export default function Profile() {
           <Text style={styles.sectionTitle}>Support</Text>
           
           <SettingItem
-            icon={<HelpCircle size={24} color="#666666" />}
+            icon={<Ionicons name="help-circle" size={24} color="#666666" />}
             title="Aide & Support"
             subtitle="Obtenez de l'aide et contactez le support"
           />
 
           <SettingItem
-            icon={<Info size={24} color="#666666" />}
+            icon={<Ionicons name="information-circle" size={24} color="#666666" />}
             title="À propos de Genly"
             subtitle="Version 2.0.0"
           />
 
           <SettingItem
-            icon={<LogOut size={24} color="#FF3B30" />}
+            icon={<Ionicons name="log-out" size={24} color="#FF3B30" />}
             title="Déconnexion"
             subtitle={userCredential?.isGuest ? "Quitter le mode invité" : "Se déconnecter du compte"}
             onPress={handleSignOut}

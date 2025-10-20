@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
-import { Sparkles, User } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
@@ -200,7 +200,7 @@ export default function LoginScreen() {
                 { transform: [{ rotate: sparkleRotationInterpolate }] }
               ]}
             >
-              <Sparkles size={80} color="#FFFFFF" />
+              <Ionicons name="sparkles" size={80} color="#FFFFFF" />
             </Animated.View>
             <Text style={styles.appName}>Genly</Text>
             <Text style={styles.tagline}>Créez l'extraordinaire avec l'IA</Text>
@@ -242,7 +242,7 @@ export default function LoginScreen() {
                 <ActivityIndicator color="#FF6B35" />
               ) : (
                 <>
-                  <User size={20} color="#FF6B35" />
+                  <Ionicons name="person" size={20} color="#FF6B35" />
                   <Text style={styles.guestButtonText}>
                     Continuer sans compte
                   </Text>

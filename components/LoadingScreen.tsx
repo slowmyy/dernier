@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Sparkles } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -62,7 +62,7 @@ export default function LoadingScreen() {
             }
           ]}
         >
-          <Sparkles size={80} color="#FFFFFF" />
+          <Ionicons name="sparkles" size={80} color="#FFFFFF" />
         </Animated.View>
         
         <Text style={styles.appName}>Genly</Text>
