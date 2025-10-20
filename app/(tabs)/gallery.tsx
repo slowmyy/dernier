@@ -25,7 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { storageService, StoredImage } from '@/services/storage';
 import { galleryEvents } from '@/services/galleryEvents'; // 🆕 Import pour notifier les mises à jour de galerie
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { useMediaCache } from '@/contexts/MediaCacheContext';
 import { COLORS } from '@/constants/Colors';
 import { router } from 'expo-router';
@@ -84,7 +84,7 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
 
   const videoAspectRatio = getVideoAspectRatio();
   const itemAspectRatio = imageWidth / imageHeight;
-  const thumbnailResizeMode = 'cover';
+  const thumbnailResizeMode = ResizeMode.COVER;
   const videoSourceUri = actualUrl && actualUrl.trim() !== '' ? actualUrl : item.url;
 
   return (
@@ -723,7 +723,7 @@ const MediaItem = ({
     }
   }, [fullscreenHeight, fullscreenWidth, mediaAspectRatio]);
 
-  const fullscreenVideoResizeMode = 'contain';
+  const fullscreenVideoResizeMode = ResizeMode.COVER;
 
   return (
     <View style={styles.mediaItemContainer}>
