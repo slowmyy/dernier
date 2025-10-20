@@ -14,7 +14,7 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
-import { Wand as Wand2, Download, Share, RefreshCw, Crown, Settings, RotateCcw, Sparkles, Palette, X, Upload, Image as ImageIcon, Zap, Brain, Cpu, Play } from 'lucide-react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -195,7 +195,15 @@ export default function ImageGenerator() {
   const imageScaleAnim = useRef(new Animated.Value(0.8)).current;
 
   // Icônes de chargement qui tournent
-  const loadingIcons = [Brain, Cpu, Sparkles, Zap];
+  const loadingIcons = ['brain', 'cpu-64-bit', 'sparkles', 'flash'];
+
+  const renderLoadingIcon = (index: number, size: number, color: string) => {
+    const iconName = loadingIcons[index];
+    if (iconName === 'brain' || iconName === 'cpu-64-bit') {
+      return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
+    }
+    return <Ionicons name={iconName as any} size={size} color={color} />;
+  };
 
   // Animation de pulsation continue
   useEffect(() => {
@@ -652,7 +660,7 @@ export default function ImageGenerator() {
           <Text style={styles.subtitle}>AI Image Generator</Text>
           
           <View style={[styles.planBadge, userPlan.isPremium ? styles.premiumBadge : styles.freeBadge]}>
-            {userPlan.isPremium && <Crown size={16} color="#FFD700" />}
+            {userPlan.isPremium && <Ionicons name="crown" size={16} color="#FFD700" />}
             <Text style={[styles.planText, userPlan.isPremium ? styles.premiumText : styles.freeText]}>
               {getCurrentModelDisplay()}
             </Text>
@@ -670,7 +678,7 @@ export default function ImageGenerator() {
           <View style={styles.labelRow}>
             <Text style={styles.label}>Décrivez votre image</Text>
             <TouchableOpacity style={styles.randomButton} onPress={handleRandomPrompt}>
-              <RefreshCw size={16} color="#007AFF" />
+              <Ionicons name="refresh" size={16} color="#007AFF" />
               <Text style={styles.randomButtonText}>Inspiration</Text>
             </TouchableOpacity>
           </View>
@@ -690,7 +698,7 @@ export default function ImageGenerator() {
         <View style={styles.inputSection}>
           <View style={styles.labelRow}>
             <View style={styles.referenceImageLabelContainer}>
-              <ImageIcon size={18} color="#000000" />
+              <Ionicons name="image" size={18} color="#000000" />
               <Text style={styles.label}>Images de référence</Text>
               {(referenceImage || referenceImage2 || referenceImage3) && (
                 <View style={styles.fluxContextBadge}>
@@ -711,12 +719,12 @@ export default function ImageGenerator() {
                     style={styles.removeReferenceButton}
                     onPress={handleRemoveReferenceImage}
                   >
-                    <X size={16} color="#FFFFFF" />
+                    <Ionicons name="close" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity style={styles.importButtonSmall} onPress={handleImportImage}>
-                  <Upload size={20} color="#007AFF" />
+                  <Ionicons name="cloud-upload" size={20} color="#007AFF" />
                   <Text style={styles.importButtonSmallText}>Ajouter</Text>
                 </TouchableOpacity>
               )}
@@ -732,12 +740,12 @@ export default function ImageGenerator() {
                     style={styles.removeReferenceButton}
                     onPress={handleRemoveReferenceImage2}
                   >
-                    <X size={16} color="#FFFFFF" />
+                    <Ionicons name="close" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity style={styles.importButtonSmall} onPress={handleImportImage2}>
-                  <Upload size={20} color="#007AFF" />
+                  <Ionicons name="cloud-upload" size={20} color="#007AFF" />
                   <Text style={styles.importButtonSmallText}>Ajouter</Text>
                 </TouchableOpacity>
               )}
@@ -753,12 +761,12 @@ export default function ImageGenerator() {
                     style={styles.removeReferenceButton}
                     onPress={handleRemoveReferenceImage3}
                   >
-                    <X size={16} color="#FFFFFF" />
+                    <Ionicons name="close" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity style={styles.importButtonSmall} onPress={handleImportImage3}>
-                  <Upload size={20} color="#007AFF" />
+                  <Ionicons name="cloud-upload" size={20} color="#007AFF" />
                   <Text style={styles.importButtonSmallText}>Ajouter</Text>
                 </TouchableOpacity>
               )}
@@ -774,7 +782,7 @@ export default function ImageGenerator() {
         <View style={styles.inputSection}>
           <View style={styles.labelRow}>
             <View style={styles.styleLabelContainer}>
-              <Palette size={18} color="#000000" />
+              <Ionicons name="color-palette" size={18} color="#000000" />
               <Text style={styles.label}>Style artistique</Text>
             </View>
             {STYLES.length > 6 && (
@@ -927,12 +935,9 @@ export default function ImageGenerator() {
           <View style={styles.buttonContent}>
             <Animated.View style={[styles.buttonIconContainer, { transform: [{ scale: pulseAnim }] }]}>
               {isGenerating ? (
-                React.createElement(loadingIcons[loadingIconIndex], { 
-                  size: 24, 
-                  color: "#FFFFFF" 
-                })
+                renderLoadingIcon(loadingIconIndex, 24, "#FFFFFF")
               ) : (
-                <Wand2 size={24} color="#FFFFFF" />
+                <Ionicons name="color-wand" size={24} color="#FFFFFF" />
               )}
             </Animated.View>
             <View style={styles.buttonTextContainer}>
@@ -982,10 +987,7 @@ export default function ImageGenerator() {
                     styles.loadingIconInFrame,
                     { transform: [{ scale: pulseAnim }] }
                   ]}>
-                    {React.createElement(loadingIcons[loadingIconIndex], { 
-                      size: 48, 
-                      color: "#007AFF" 
-                    })}
+                    {renderLoadingIcon(loadingIconIndex, 48, "#007AFF")}
                   </Animated.View>
                   <Text style={styles.loadingTextInFrame}>
                     {(referenceImage || referenceImage2 || referenceImage3) ? 'Génération multi-images...' : 'Création de votre image...'}
@@ -1063,19 +1065,19 @@ export default function ImageGenerator() {
               <>
                 <View style={styles.actionButtons}>
                   <TouchableOpacity style={styles.actionButton} onPress={handleDownload}>
-                    <Download size={20} color="#007AFF" />
+                    <Ionicons name="download" size={20} color="#007AFF" />
                     <Text style={styles.actionButtonText}>
                       {Platform.OS === 'web' ? 'Télécharger' : 'Sauvegarder'}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-                    <Share size={20} color="#007AFF" />
+                    <Ionicons name="share-social" size={20} color="#007AFF" />
                     <Text style={styles.actionButtonText}>Partager</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.animateButton} onPress={handleAnimateImage}>
-                    <Play size={20} color="#FFFFFF" />
+                    <Ionicons name="play" size={20} color="#FFFFFF" />
                     <Text style={styles.animateButtonText}>Animer</Text>
                   </TouchableOpacity>
                 </View>
