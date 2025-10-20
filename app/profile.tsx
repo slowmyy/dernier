@@ -126,7 +126,15 @@ export default function Profile() {
               <Ionicons name="person" size={32} color="#007AFF" />
             )}
           </View>
-          <Text style={styles.title}>{displayName}</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>{displayName}</Text>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => Alert.alert('Édition', 'Fonctionnalité d\'édition du nom à venir')}
+            >
+              <Ionicons name="create" size={20} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.subtitle}>
             {userCredential?.isGuest ? 'Mode invité' : 'Compte connecté'}
           </Text>
@@ -246,11 +254,19 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#E5F3FF',
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#000000',
-    marginBottom: 4,
+  },
+  editButton: {
+    padding: 4,
   },
   subtitle: {
     fontSize: 16,
