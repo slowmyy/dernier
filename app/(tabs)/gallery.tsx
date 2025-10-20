@@ -109,14 +109,10 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
         </View>
       )}
 
-      {/* 🆕 Overlay discret pour afficher le prompt */}
-      {item.prompt ? (
-        <View style={styles.promptOverlay} pointerEvents="none">
-          <Text style={styles.promptText} numberOfLines={2}>
-            {item.prompt}
-          </Text>
-        </View>
-      ) : null}
+      {/* Icône de téléchargement en haut à droite */}
+      <View style={styles.downloadIconContainer} pointerEvents="none">
+        <Download size={16} color="#FFFFFF" strokeWidth={2.5} />
+      </View>
     </TouchableOpacity>
   );
 };
@@ -187,14 +183,10 @@ const ImageThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
         )
       )}
 
-      {/* 🆕 Overlay discret pour afficher le prompt de l'image */}
-      {item.prompt ? (
-        <View style={styles.promptOverlay} pointerEvents="none">
-          <Text style={styles.promptText} numberOfLines={2}>
-            {item.prompt}
-          </Text>
-        </View>
-      ) : null}
+      {/* Icône de téléchargement en haut à droite */}
+      <View style={styles.downloadIconContainer} pointerEvents="none">
+        <Download size={16} color="#FFFFFF" strokeWidth={2.5} />
+      </View>
     </TouchableOpacity>
   );
 };
@@ -970,7 +962,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 8,
     marginBottom: 12,
-    gap: 8,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1057,6 +1048,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     height: '100%',
+  },
+  downloadIconContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   imageError: {
     justifyContent: 'center',
