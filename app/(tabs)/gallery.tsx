@@ -12,6 +12,7 @@ import {
   Platform,
   ActivityIndicator,
   Animated as RNAnimated,
+  FlatList,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -570,6 +571,7 @@ export default function Gallery() {
         >
           <ModalFullscreenView
             selectedImage={selectedImage}
+            allMedia={filteredMedia}
             onClose={handleCloseModal}
             onDownload={handleDownloadImage}
             onShare={handleShareImage}
@@ -584,34 +586,28 @@ export default function Gallery() {
   );
 }
 
-const ModalFullscreenView = ({
-  selectedImage,
-  onClose,
+const MediaItem = ({
+  item,
   onDownload,
   onShare,
-  onDelete,
   onAnimate,
   isDownloading,
   isSharing
 }: {
-  selectedImage: StoredImage | null;
-  onClose: () => void;
+  item: StoredImage;
   onDownload: (image: StoredImage) => void;
   onShare: (image: StoredImage) => void;
-  onDelete: (image: StoredImage) => void;
   onAnimate: (image: StoredImage) => void;
   isDownloading: boolean;
   isSharing: boolean;
 }) => {
-  if (!selectedImage) return null;
-
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(true);
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
 
   const imageAspectRatio = useMemo(() => {
-    if (selectedImage?.dimensions) {
-      const dimensionParts = selectedImage.dimensions
+    if (item?.dimensions) {
+      const dimensionParts = item.dimensions
         .toLowerCase()
         .split(/[x×]/)
         .map(part => Number(part.trim()));
@@ -625,12 +621,12 @@ const ModalFullscreenView = ({
     }
 
     return 3 / 4;
-  }, [selectedImage]);
+  }, [item]);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!selectedImage) {
+    if (!item) {
       setActualImageUrl('');
       setImageLoading(false);
       return () => {
@@ -638,8 +634,8 @@ const ModalFullscreenView = ({
       };
     }
 
-    const hasResolvedUrl = Boolean(selectedImage.resolvedUrl && selectedImage.resolvedUrl.trim() !== '');
-    const fallbackUrl = hasResolvedUrl ? selectedImage.resolvedUrl! : selectedImage.url;
+    const hasResolvedUrl = Boolean(item.resolvedUrl && item.resolvedUrl.trim() !== '');
+    const fallbackUrl = hasResolvedUrl ? item.resolvedUrl! : item.url;
 
     if (hasResolvedUrl) {
       setActualImageUrl(fallbackUrl);
@@ -654,7 +650,7 @@ const ModalFullscreenView = ({
 
     const loadActualUrl = async () => {
       try {
-        const url = await storageService.getImageUrl(selectedImage);
+        const url = await storageService.getImageUrl(item);
         if (!isMounted) return;
 
         if (url && url.trim() !== '') {
@@ -678,15 +674,15 @@ const ModalFullscreenView = ({
     return () => {
       isMounted = false;
     };
-  }, [selectedImage]);
+  }, [item]);
 
   const getMediaAspectRatio = () => {
-    if (selectedImage.isVideo && selectedImage.videoWidth && selectedImage.videoHeight) {
-      return selectedImage.videoWidth / selectedImage.videoHeight;
+    if (item.isVideo && item.videoWidth && item.videoHeight) {
+      return item.videoWidth / item.videoHeight;
     }
 
-    if (selectedImage.dimensions) {
-      const [rawWidth, rawHeight] = selectedImage.dimensions
+    if (item.dimensions) {
+      const [rawWidth, rawHeight] = item.dimensions
         .toLowerCase()
         .split(/[x×]/)
         .map(part => Number(part.trim()));
@@ -696,7 +692,7 @@ const ModalFullscreenView = ({
       }
     }
 
-    if (selectedImage.isVideo) {
+    if (item.isVideo) {
       return 9 / 16;
     }
 
@@ -730,30 +726,14 @@ const ModalFullscreenView = ({
   const fullscreenVideoResizeMode = 'contain';
 
   return (
-    <View style={styles.modalContainer}>
-      {/* Bouton de fermeture en haut à gauche */}
-      <TouchableOpacity
-        style={styles.closeButtonTopLeft}
-        onPress={onClose}
-      >
-        <Text style={styles.closeButtonText}>✕</Text>
-      </TouchableOpacity>
-
-      {/* Bouton de suppression en haut à droite */}
-      <TouchableOpacity
-        style={styles.deleteButtonTopRight}
-        onPress={() => onDelete(selectedImage)}
-      >
-        <Trash2 size={24} color="#FF3B30" />
-      </TouchableOpacity>
-
+    <View style={styles.mediaItemContainer}>
       {/* Média en plein écran */}
       <View style={styles.fullscreenMediaContainer}>
         {imageLoading || !actualImageUrl ? (
           <View style={styles.modalImageLoading}>
             <ActivityIndicator size="large" color="#007AFF" />
           </View>
-        ) : selectedImage.isVideo ? (
+        ) : item.isVideo ? (
           <Video
             source={{ uri: actualImageUrl }}
             style={[styles.fullscreenMedia, mediaDimensions]}
@@ -774,7 +754,7 @@ const ModalFullscreenView = ({
       </View>
 
       {/* Affichage expandable du prompt en plein écran */}
-      {selectedImage.prompt ? (
+      {item.prompt ? (
         <TouchableOpacity
           style={styles.fullscreenPromptContainer}
           onPress={() => setIsPromptExpanded(!isPromptExpanded)}
@@ -792,7 +772,7 @@ const ModalFullscreenView = ({
             style={styles.fullscreenPromptText}
             numberOfLines={isPromptExpanded ? undefined : 1}
           >
-            {selectedImage.prompt}
+            {item.prompt}
           </Text>
         </TouchableOpacity>
       ) : null}
@@ -801,7 +781,7 @@ const ModalFullscreenView = ({
       <View style={styles.bottomButtonsContainer}>
         <TouchableOpacity
           style={[styles.bottomButton, styles.downloadButton, isDownloading && styles.bottomButtonDisabled]}
-          onPress={() => onDownload(selectedImage)}
+          onPress={() => onDownload(item)}
           disabled={isDownloading}
         >
           <Download size={22} color="#FFFFFF" strokeWidth={2.5} />
@@ -810,10 +790,10 @@ const ModalFullscreenView = ({
           </Text>
         </TouchableOpacity>
 
-        {!selectedImage.isVideo && (
+        {!item.isVideo && (
           <TouchableOpacity
             style={styles.bottomButton}
-            onPress={() => onAnimate(selectedImage)}
+            onPress={() => onAnimate(item)}
           >
             <Play size={24} color="#FFFFFF" />
             <Text style={styles.bottomButtonText}>Animer</Text>
@@ -822,12 +802,122 @@ const ModalFullscreenView = ({
 
         <TouchableOpacity
           style={[styles.bottomShareButton, isSharing && styles.bottomButtonDisabled]}
-          onPress={() => onShare(selectedImage)}
+          onPress={() => onShare(item)}
           disabled={isSharing}
         >
           <Share size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
+    </View>
+  );
+};
+
+const ModalFullscreenView = ({
+  selectedImage,
+  allMedia,
+  onClose,
+  onDownload,
+  onShare,
+  onDelete,
+  onAnimate,
+  isDownloading,
+  isSharing
+}: {
+  selectedImage: StoredImage | null;
+  allMedia: StoredImage[];
+  onClose: () => void;
+  onDownload: (image: StoredImage) => void;
+  onShare: (image: StoredImage) => void;
+  onDelete: (image: StoredImage) => void;
+  onAnimate: (image: StoredImage) => void;
+  isDownloading: boolean;
+  isSharing: boolean;
+}) => {
+  if (!selectedImage) return null;
+
+  const flatListRef = useRef<FlatList>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentMedia, setCurrentMedia] = useState(selectedImage);
+
+  const initialIndex = useMemo(() => {
+    return allMedia.findIndex(item => item.id === selectedImage.id);
+  }, [allMedia, selectedImage]);
+
+  useEffect(() => {
+    if (initialIndex >= 0 && flatListRef.current) {
+      setCurrentIndex(initialIndex);
+      setCurrentMedia(allMedia[initialIndex]);
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({ index: initialIndex, animated: false });
+      }, 100);
+    }
+  }, [initialIndex, allMedia]);
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      const index = viewableItems[0].index;
+      setCurrentIndex(index);
+      setCurrentMedia(allMedia[index]);
+    }
+  }).current;
+
+  const viewConfigRef = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
+  const { height: screenHeight } = Dimensions.get('window');
+
+
+  return (
+    <View style={styles.modalContainer}>
+      {/* Bouton de fermeture en haut à gauche */}
+      <TouchableOpacity
+        style={styles.closeButtonTopLeft}
+        onPress={onClose}
+      >
+        <Text style={styles.closeButtonText}>✕</Text>
+      </TouchableOpacity>
+
+      {/* Bouton de suppression en haut à droite */}
+      <TouchableOpacity
+        style={styles.deleteButtonTopRight}
+        onPress={() => onDelete(currentMedia)}
+      >
+        <Trash2 size={24} color="#FF3B30" />
+      </TouchableOpacity>
+
+      {/* FlatList avec pagination verticale */}
+      <FlatList
+        ref={flatListRef}
+        data={allMedia}
+        renderItem={({ item }) => (
+          <MediaItem
+            item={item}
+            onDownload={onDownload}
+            onShare={onShare}
+            onAnimate={onAnimate}
+            isDownloading={isDownloading}
+            isSharing={isSharing}
+          />
+        )}
+        keyExtractor={(item) => item.id}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+        snapToInterval={screenHeight}
+        decelerationRate="fast"
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewConfigRef}
+        getItemLayout={(data, index) => ({
+          length: screenHeight,
+          offset: screenHeight * index,
+          index,
+        })}
+        initialScrollIndex={initialIndex >= 0 ? initialIndex : 0}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise(resolve => setTimeout(resolve, 500));
+          wait.then(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: false });
+          });
+        }}
+      />
     </View>
   );
 };
@@ -970,7 +1060,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: '#FFFFFF',
   },
   tabTextActive: {
     color: '#FFFFFF',
@@ -1109,8 +1199,13 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  mediaItemContainer: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000000',
   },
   closeButtonTopLeft: {
     position: 'absolute',
@@ -1119,13 +1214,11 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(28, 28, 30, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
-    fontSize: 24,
+    fontSize: 28,
     color: '#FFFFFF',
     fontWeight: '300',
   },
@@ -1136,8 +1229,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(28, 28, 30, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
