@@ -740,6 +740,8 @@ export default function VideoGenerator() {
                         width: '100%',
                         height: '100%',
                         borderRadius: 12,
+                        objectFit: 'cover',
+                        display: 'block',
                       }}
                       controls
                       preload="metadata"
@@ -762,7 +764,7 @@ export default function VideoGenerator() {
                       key={`expo-video-${generatedVideo.timestamp}-${videoRetryCount}`}
                       style={styles.video}
                       useNativeControls
-                      resizeMode={ResizeMode.CONTAIN}
+                      resizeMode={ResizeMode.COVER}
                       isLooping={false}
                       shouldPlay={false}
                       onLoad={handleVideoLoad}
