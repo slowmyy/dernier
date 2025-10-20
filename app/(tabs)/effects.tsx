@@ -30,7 +30,7 @@ interface Effect {
   id: string;
   title: string;
   description: string;
-  icon: React.ComponentType<any>;
+  icon: string;
   color: string;
   backgroundColor: string;
   slots: number;
@@ -44,7 +44,7 @@ const IMAGE_EFFECTS: Effect[] = [
     id: 'celebrity',
     title: 'Celebrity IA',
     description: 'Avec une star',
-    icon: Star,
+    icon: 'star',
     color: '#F59E0B',
     backgroundColor: '#FFFBEB',
     slots: 2,
@@ -55,7 +55,7 @@ const IMAGE_EFFECTS: Effect[] = [
     id: 'footballcard',
     title: 'Football Card',
     description: 'Carte de joueur',
-    icon: CreditCard,
+    icon: 'card',
     color: '#10B981',
     backgroundColor: '#ECFDF5',
     slots: 1,
@@ -66,7 +66,7 @@ const IMAGE_EFFECTS: Effect[] = [
     id: 'polaroid',
     title: 'Polaroid',
     description: 'Style vintage',
-    icon: Camera,
+    icon: 'camera',
     color: '#3B82F6',
     backgroundColor: '#EFF6FF',
     slots: 2,
@@ -77,7 +77,7 @@ const IMAGE_EFFECTS: Effect[] = [
     id: 'restoration',
     title: 'Photo-Restauration',
     description: 'Réparer une photo',
-    icon: RotateCcw,
+    icon: 'arrow-undo',
     color: '#8B5CF6',
     backgroundColor: '#F3E8FF',
     slots: 1,
@@ -88,7 +88,7 @@ const IMAGE_EFFECTS: Effect[] = [
     id: 'figurine',
     title: 'Figurine AI',
     description: 'Créer une figurine',
-    icon: Package,
+    icon: 'cube',
     color: '#059669',
     backgroundColor: '#F0FDF4',
     slots: 1,
@@ -99,7 +99,7 @@ const IMAGE_EFFECTS: Effect[] = [
     id: 'homeless',
     title: 'Homeless Prank',
     description: 'Ajouter un SDF',
-    icon: Sparkles,
+    icon: 'sparkles',
     color: '#EF4444',
     backgroundColor: '#FEF2F2',
     slots: 1,
@@ -112,7 +112,7 @@ const PIXVERSE_VIDEO_EFFECTS: Effect[] = PIXVERSE_EFFECTS.map(effect => ({
   id: `pixverse_${effect.id}`,
   title: effect.name,
   description: effect.description,
-  icon: Film,
+  icon: 'film',
   color: '#FF6B35',
   backgroundColor: '#FFF5F0',
   slots: effect.requiresImage ? (effect.maxImages || 1) : 0,
@@ -136,7 +136,16 @@ export default function Effects() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingIconIndex, setLoadingIconIndex] = useState(0);
 
-  const loadingIcons = [Sparkles, Film, Play, Camera];
+  const loadingIcons = ['sparkles', 'film', 'play', 'camera'];
+
+  const renderLoadingIcon = (index: number, size: number, color: string) => {
+    const iconName = loadingIcons[index];
+    return <Ionicons name={iconName as any} size={size} color={color} />;
+  };
+
+  const renderEffectIcon = (iconName: string, size: number, color: string) => {
+    return <Ionicons name={iconName as any} size={size} color={color} />;
+  };
 
   useEffect(() => {
     if (isGenerating) {
@@ -373,7 +382,7 @@ export default function Effects() {
                 activeOpacity={0.8}
               >
                 <View style={[styles.effectIconContainer, { backgroundColor: effect.color }]}>
-                  <effect.icon size={24} color="#FFFFFF" />
+                  {renderEffectIcon(effect.icon, 24, "#FFFFFF")}
                 </View>
                 <Text style={styles.effectTitle}>{effect.title}</Text>
                 <Text style={styles.effectDescription}>{effect.description}</Text>
@@ -491,7 +500,7 @@ export default function Effects() {
                 {isGenerating ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  React.createElement(loadingIcons[0], { size: 20, color: '#FFFFFF' })
+                  renderLoadingIcon(0, 20, '#FFFFFF')
                 )}
               </Animated.View>
               <Text style={styles.generateButtonText}>

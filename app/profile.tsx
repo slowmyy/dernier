@@ -99,7 +99,7 @@ export default function Profile() {
         )}
       </View>
       {isPremium && (
-        <Ionicons name="crown" size={20} color="#FFD700" />
+        <Ionicons name="trophy" size={20} color="#FFD700" />
       )}
     </TouchableOpacity>
   );
@@ -137,7 +137,7 @@ export default function Profile() {
           <Text style={styles.sectionTitle}>Abonnement Actuel</Text>
           <View style={[styles.planCard, userPlan.isPremium ? styles.premiumPlanCard : styles.freePlanCard]}>
             <View style={styles.planHeader}>
-              {userPlan.isPremium && <Ionicons name="crown" size={24} color="#FFD700" />}
+              {userPlan.isPremium && <Ionicons name="trophy" size={24} color="#FFD700" />}
               <Text style={[styles.planName, userPlan.isPremium ? styles.premiumPlanName : styles.freePlanName]}>
                 {userPlan.isPremium ? 'Premium' : 'Gratuit'}
               </Text>
@@ -159,7 +159,7 @@ export default function Profile() {
           <Text style={styles.sectionTitle}>Compte</Text>
           
           <SettingItem
-            icon={<Ionicons name="crown" size={24} color={userPlan.isPremium ? "#FFD700" : "#007AFF"} />}
+            icon={<Ionicons name="trophy" size={24} color={userPlan.isPremium ? "#FFD700" : "#007AFF"} />}
             title={userPlan.isPremium ? "Passer en Gratuit" : "Passer Premium"}
             subtitle={userPlan.isPremium 
               ? "Revenir au modèle gratuit" 

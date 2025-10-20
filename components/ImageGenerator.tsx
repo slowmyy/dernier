@@ -660,7 +660,7 @@ export default function ImageGenerator() {
           <Text style={styles.subtitle}>AI Image Generator</Text>
           
           <View style={[styles.planBadge, userPlan.isPremium ? styles.premiumBadge : styles.freeBadge]}>
-            {userPlan.isPremium && <Ionicons name="crown" size={16} color="#FFD700" />}
+            {userPlan.isPremium && <Ionicons name="trophy" size={16} color="#FFD700" />}
             <Text style={[styles.planText, userPlan.isPremium ? styles.premiumText : styles.freeText]}>
               {getCurrentModelDisplay()}
             </Text>
