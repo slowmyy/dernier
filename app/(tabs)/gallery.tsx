@@ -761,6 +761,11 @@ const MediaItem = ({
   const [videoReady, setVideoReady] = useState(false);
   // 🆕 Stocker les dimensions natives de la vidéo pour un affichage correct dès le 1er clic
   const [nativeVideoDimensions, setNativeVideoDimensions] = useState<{width: number, height: number} | null>(null);
+  // 🆕 Fallback : forcer l'affichage après timeout même sans dimensions natives
+  const [forceDisplay, setForceDisplay] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  console.log('🔄 [MediaItem] Render - Item ID:', item?.id, 'isVideo:', item?.isVideo, 'videoReady:', videoReady, 'nativeVideoDimensions:', nativeVideoDimensions, 'forceDisplay:', forceDisplay);
 
   const imageAspectRatio = useMemo(() => {
     if (item?.dimensions) {
@@ -784,27 +789,60 @@ const MediaItem = ({
     let isMounted = true;
 
     if (!item) {
+      console.log('⚠️ [MediaItem] useEffect - Pas d\'item');
       setActualImageUrl('');
       setImageLoading(false);
       setVideoReady(false);
       setNativeVideoDimensions(null);
+      setForceDisplay(false);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       return () => {
         isMounted = false;
       };
     }
 
+    console.log('🔄 [MediaItem] useEffect - Item changé:', item.id, 'isVideo:', item.isVideo);
+
     // Réinitialiser l'état de la vidéo quand l'item change
     setVideoReady(false);
     setNativeVideoDimensions(null);
+    setForceDisplay(false);
+
+    // Nettoyer le timeout précédent
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
 
     const hasResolvedUrl = Boolean(item.resolvedUrl && item.resolvedUrl.trim() !== '');
     const fallbackUrl = hasResolvedUrl ? item.resolvedUrl! : item.url;
 
+    console.log('📍 [MediaItem] URL - hasResolvedUrl:', hasResolvedUrl, 'URL:', fallbackUrl);
+
     if (hasResolvedUrl) {
       setActualImageUrl(fallbackUrl);
       setImageLoading(false);
+
+      // 🆕 Pour les vidéos : timeout de sécurité (3s) pour afficher même sans dimensions natives
+      if (item.isVideo) {
+        console.log('⏱️ [MediaItem] Démarrage timeout de sécurité (3s) pour vidéo');
+        timeoutRef.current = setTimeout(() => {
+          if (isMounted && !nativeVideoDimensions) {
+            console.warn('⚠️ [MediaItem] TIMEOUT : Affichage forcé de la vidéo sans dimensions natives');
+            setForceDisplay(true);
+            setVideoReady(true);
+          }
+        }, 3000);
+      }
+
       return () => {
         isMounted = false;
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
       };
     }
 
@@ -813,15 +851,31 @@ const MediaItem = ({
 
     const loadActualUrl = async () => {
       try {
+        console.log('🔄 [MediaItem] Chargement URL pour item:', item.id);
         const url = await storageService.getImageUrl(item);
         if (!isMounted) return;
 
         if (url && url.trim() !== '') {
+          console.log('✅ [MediaItem] URL chargée:', url);
           setActualImageUrl(url);
         } else {
+          console.log('⚠️ [MediaItem] URL vide, utilisation fallback:', fallbackUrl);
           setActualImageUrl(fallbackUrl);
         }
+
+        // 🆕 Pour les vidéos : timeout de sécurité (3s) pour afficher même sans dimensions natives
+        if (item.isVideo) {
+          console.log('⏱️ [MediaItem] Démarrage timeout de sécurité (3s) pour vidéo');
+          timeoutRef.current = setTimeout(() => {
+            if (isMounted && !nativeVideoDimensions) {
+              console.warn('⚠️ [MediaItem] TIMEOUT : Affichage forcé de la vidéo sans dimensions natives');
+              setForceDisplay(true);
+              setVideoReady(true);
+            }
+          }, 3000);
+        }
       } catch (error) {
+        console.error('❌ [MediaItem] Erreur chargement URL:', error);
         if (isMounted) {
           setActualImageUrl(fallbackUrl);
         }
@@ -836,6 +890,9 @@ const MediaItem = ({
 
     return () => {
       isMounted = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, [item]);
 
@@ -906,10 +963,13 @@ const MediaItem = ({
           </View>
         ) : item.isVideo ? (
           <>
-            {/* 🆕 Afficher le loader jusqu'à ce que les dimensions natives soient capturées ET la vidéo prête */}
-            {(!videoReady || !nativeVideoDimensions) && (
+            {/* 🆕 Afficher le loader jusqu'à ce que la vidéo soit prête (avec ou sans dimensions natives) */}
+            {!videoReady && !forceDisplay && (
               <View style={styles.modalImageLoading}>
                 <ActivityIndicator size="large" color="#007AFF" />
+                <Text style={{ color: '#FFFFFF', marginTop: 12, fontSize: 14 }}>
+                  Chargement de la vidéo...
+                </Text>
               </View>
             )}
             <Video
@@ -917,27 +977,46 @@ const MediaItem = ({
               style={[
                 styles.fullscreenMedia,
                 mediaDimensions,
-                // 🆕 Masquer la vidéo tant que les dimensions natives ne sont pas capturées (évite l'affichage incorrect)
-                { opacity: nativeVideoDimensions ? 1 : 0 }
+                // 🆕 Afficher la vidéo si dimensions natives OU forceDisplay après timeout
+                { opacity: (nativeVideoDimensions || forceDisplay) ? 1 : 0 }
               ]}
               resizeMode={fullscreenVideoResizeMode}
-              shouldPlay={videoReady && nativeVideoDimensions !== null}
+              shouldPlay={videoReady || forceDisplay}
               isLooping
               useNativeControls
+              onLoadStart={() => {
+                console.log('🎬 [VIDEO] onLoadStart - Début du chargement - URI:', actualImageUrl);
+              }}
+              onLoad={(status) => {
+                console.log('🎬 [VIDEO] onLoad - Vidéo chargée - Status:', status);
+                // Fallback : si onReadyForDisplay ne se déclenche pas, forcer après 500ms
+                setTimeout(() => {
+                  console.log('🎬 [VIDEO] onLoad timeout - Force videoReady si pas encore fait');
+                  setVideoReady(true);
+                }, 500);
+              }}
               onReadyForDisplay={(event) => {
+                console.log('🎬 [VIDEO] onReadyForDisplay - Event:', event);
                 // 🆕 Capturer les dimensions natives RÉELLES de la vidéo pour un affichage correct
                 if (event?.naturalSize?.width && event?.naturalSize?.height) {
-                  console.log('📐 [VIDEO] Dimensions natives capturées:', event.naturalSize.width, 'x', event.naturalSize.height);
+                  console.log('✅ [VIDEO] Dimensions natives capturées:', event.naturalSize.width, 'x', event.naturalSize.height);
                   setNativeVideoDimensions({
                     width: event.naturalSize.width,
                     height: event.naturalSize.height
                   });
+                  // Annuler le timeout de sécurité car on a les dimensions
+                  if (timeoutRef.current) {
+                    console.log('✅ [VIDEO] Annulation du timeout (dimensions reçues)');
+                    clearTimeout(timeoutRef.current);
+                    timeoutRef.current = null;
+                  }
+                } else {
+                  console.warn('⚠️ [VIDEO] onReadyForDisplay appelé mais pas de naturalSize dans event');
                 }
                 setVideoReady(true);
               }}
-              onLoad={() => {
-                // Fallback au cas où onReadyForDisplay ne se déclenche pas
-                setTimeout(() => setVideoReady(true), 100);
+              onError={(error) => {
+                console.error('❌ [VIDEO] Erreur de chargement:', error);
               }}
             />
           </>
