@@ -261,6 +261,7 @@ export default function Profile() {
           <View style={styles.modalContainer}>
             {/* Header Modal */}
             <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
               <TouchableOpacity
                 onPress={() => setIsEditModalVisible(false)}
                 style={styles.modalCloseButton}
@@ -268,8 +269,6 @@ export default function Profile() {
               >
                 <Ionicons name="close" size={20} color="#FFFFFF" />
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Edit Profile</Text>
-              <View style={styles.modalHeaderSpacer} />
             </View>
 
             {/* Photo de profil */}
@@ -511,9 +510,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    position: 'relative',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 12,
@@ -525,14 +524,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#2C2C2E',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  modalHeaderSpacer: {
-    width: 36,
+    position: 'absolute',
+    left: 24,
+    top: 20,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   modalContent: {
     paddingTop: 12,
