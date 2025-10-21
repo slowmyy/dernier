@@ -174,16 +174,16 @@ export default function Profile() {
             )}
           </View>
 
-          <Text style={styles.displayName}>{displayName}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.displayName}>{displayName}</Text>
+            <TouchableOpacity style={styles.editIconButton} onPress={handleOpenEditModal}>
+              <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
           {userCredential?.email && (
             <Text style={styles.email}>{userCredential.email}</Text>
           )}
-
-          {/* 🆕 Bouton pour ouvrir la modal d'édition */}
-          <TouchableOpacity style={styles.editProfileButton} onPress={handleOpenEditModal}>
-            <Ionicons name="create-outline" size={20} color="#007AFF" />
-            <Text style={styles.editProfileText}>Modifier le profil</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Section Plan */}
@@ -376,26 +376,25 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 4,
   },
   email: {
     fontSize: 14,
     color: '#8E8E93',
     marginBottom: 16,
   },
-  editProfileButton: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#F0F8FF',
-    gap: 6,
+    marginBottom: 4,
   },
-  editProfileText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
+  editIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1C1C1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
   settingsSection: {
     paddingTop: 24,
