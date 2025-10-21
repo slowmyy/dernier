@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Animated as RNAnimated,
   FlatList,
+  Pressable,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -29,7 +30,9 @@ import { Video, ResizeMode } from 'expo-av';
 import { useMediaCache } from '@/contexts/MediaCacheContext';
 import { COLORS } from '@/constants/Colors';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authService } from '@/services/auth';
 
 const { width: screenWidth } = Dimensions.get('window');
 const NUM_COLUMNS = 3;
@@ -39,7 +42,15 @@ const imageHeight = imageWidth * 1.15;
 
 type MediaType = 'photos' | 'videos';
 
-const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
+const VideoThumbnail = ({
+  item,
+  onPress,
+  onDelete,
+}: {
+  item: StoredImage;
+  onPress: (item: StoredImage) => void;
+  onDelete: (item: StoredImage) => void;
+}) => {
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [actualUrl, setActualUrl] = useState<string>(item.url);
 
@@ -88,10 +99,9 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
   const videoSourceUri = actualUrl && actualUrl.trim() !== '' ? actualUrl : item.url;
 
   return (
-    <TouchableOpacity
-      style={styles.imageItem}
+    <Pressable
+      style={({ pressed }) => [styles.imageItem, pressed && styles.thumbnailPressed]}
       onPress={handlePress}
-      activeOpacity={0.8}
     >
       <Video
         // 🆕 Utilisation de l'URL résolue la plus fiable
@@ -109,11 +119,32 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
           <ActivityIndicator size="small" color="#007AFF" />
         </View>
       )}
-    </TouchableOpacity>
+      <Pressable
+        style={({ pressed }) => [
+          styles.thumbnailActionButton,
+          pressed && styles.thumbnailActionButtonPressed,
+        ]}
+        onPress={(event) => {
+          event.stopPropagation();
+          onDelete(item);
+        }}
+        hitSlop={8}
+      >
+        <Ionicons name="trash" size={16} color="#FF3B30" />
+      </Pressable>
+    </Pressable>
   );
 };
 
-const ImageThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
+const ImageThumbnail = ({
+  item,
+  onPress,
+  onDelete,
+}: {
+  item: StoredImage;
+  onPress: (item: StoredImage) => void;
+  onDelete: (item: StoredImage) => void;
+}) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(false);
@@ -149,10 +180,9 @@ const ImageThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
   }, [actualImageUrl, imageError, imageLoaded, item, onPress]);
 
   return (
-    <TouchableOpacity
-      style={styles.imageItem}
+    <Pressable
+      style={({ pressed }) => [styles.imageItem, pressed && styles.thumbnailPressed]}
       onPress={handlePress}
-      activeOpacity={0.8}
     >
       {!imageLoaded && !imageError && (
         <View style={styles.imageLoader}>
@@ -178,15 +208,36 @@ const ImageThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
           />
         )
       )}
-    </TouchableOpacity>
+      <Pressable
+        style={({ pressed }) => [
+          styles.thumbnailActionButton,
+          pressed && styles.thumbnailActionButtonPressed,
+        ]}
+        onPress={(event) => {
+          event.stopPropagation();
+          onDelete(item);
+        }}
+        hitSlop={8}
+      >
+        <Ionicons name="trash" size={16} color="#FF3B30" />
+      </Pressable>
+    </Pressable>
   );
 };
 
-const GalleryItem = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
+const GalleryItem = ({
+  item,
+  onPress,
+  onDelete,
+}: {
+  item: StoredImage;
+  onPress: (item: StoredImage) => void;
+  onDelete: (item: StoredImage) => void;
+}) => {
   if (item.isVideo) {
-    return <VideoThumbnail item={item} onPress={onPress} />;
+    return <VideoThumbnail item={item} onPress={onPress} onDelete={onDelete} />;
   }
-  return <ImageThumbnail item={item} onPress={onPress} />;
+  return <ImageThumbnail item={item} onPress={onPress} onDelete={onDelete} />;
 };
 
 export default function Gallery() {
@@ -197,10 +248,48 @@ export default function Gallery() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
-  const [username] = useState('username_9221...');
+  const [profileName, setProfileName] = useState('Utilisateur');
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
 
   const scrollY = useSharedValue(0);
   const glowAnim = useRef(new RNAnimated.Value(0)).current;
+
+  const loadProfileInfo = useCallback(async () => {
+    try {
+      const [name, avatar] = await Promise.all([
+        authService.getDisplayName(),
+        authService.getAvatarUri(),
+      ]);
+
+      if (name && name.trim().length > 0) {
+        setProfileName(name);
+      } else {
+        setProfileName('Utilisateur');
+      }
+
+      setProfileAvatar(avatar ?? null);
+    } catch (error) {
+      console.error('Erreur chargement profil galerie:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfileInfo();
+  }, [loadProfileInfo]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileInfo();
+    }, [loadProfileInfo])
+  );
+
+  const avatarInitial = useMemo(() => {
+    const trimmed = profileName.trim();
+    if (trimmed.length === 0) {
+      return 'U';
+    }
+    return trimmed[0]!.toUpperCase();
+  }, [profileName]);
 
   useEffect(() => {
     RNAnimated.loop(
@@ -282,8 +371,8 @@ export default function Gallery() {
 
   const handleDeleteImage = useCallback(async (image: StoredImage) => {
     Alert.alert(
-      `Supprimer ${image.isVideo ? 'la vidéo' : 'l\'image'}`,
-      `Êtes-vous sûr de vouloir supprimer ${image.isVideo ? 'cette vidéo' : 'cette image'} ?`,
+      'Êtes-vous sûr de vouloir supprimer ce fichier ?',
+      "Cette action ne peut pas être annulée et les crédits ne seront pas remboursés.",
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -293,17 +382,14 @@ export default function Gallery() {
             try {
               console.log('🗑️ Suppression du média:', image.id);
 
-              // Suppression du média
               if (image.isVideo) {
                 await storageService.deleteVideo(image.id);
               } else {
                 await storageService.deleteImage(image.id);
               }
 
-              // Rafraîchissement de la galerie
               await refreshMedia();
 
-              // Fermeture du modal APRÈS la suppression
               if (selectedImage?.id === image.id) {
                 handleCloseModal();
               }
@@ -398,8 +484,14 @@ export default function Gallery() {
   }, [handleCloseModal]);
 
   const renderImageItem = useCallback(({ item }: { item: StoredImage }) => {
-    return <GalleryItem item={item} onPress={handleImagePress} />;
-  }, [handleImagePress]);
+    return (
+      <GalleryItem
+        item={item}
+        onPress={handleImagePress}
+        onDelete={handleDeleteImage}
+      />
+    );
+  }, [handleDeleteImage, handleImagePress]);
 
   const keyExtractor = useCallback((item: StoredImage) => item.id, []);
 
@@ -487,11 +579,18 @@ export default function Gallery() {
               <View style={styles.userSection}>
                 <View style={styles.avatarContainer}>
                   <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>U</Text>
+                    {profileAvatar ? (
+                      <Image source={{ uri: profileAvatar }} style={styles.headerAvatarImage} />
+                    ) : (
+                      <Text style={styles.avatarText}>{avatarInitial}</Text>
+                    )}
                   </View>
                 </View>
-                <Text style={styles.username}>{username}</Text>
-                <TouchableOpacity style={styles.editButton}>
+                <Text style={styles.username}>{profileName}</Text>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => router.push('/profile')}
+                >
                   <Ionicons name="create" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
@@ -1028,6 +1127,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
+  },
   avatarText: {
     fontSize: 24,
     fontWeight: '600',
@@ -1100,12 +1204,29 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 0,
   },
+  thumbnailPressed: {
+    opacity: 0.85,
+  },
   thumbnailImage: {
     width: '100%',
     height: '100%',
     position: 'absolute',
     top: 0,
     left: 0,
+  },
+  thumbnailActionButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailActionButtonPressed: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   promptOverlay: {
     position: 'absolute',
