@@ -9,6 +9,8 @@ export interface UserCredential {
   };
   identityToken?: string;
   authorizationCode?: string;
+  displayName?: string;
+  avatarUri?: string | null;
   isGuest: boolean;
   createdAt: number;
 }
@@ -64,13 +66,17 @@ class AuthService {
   async getDisplayName(): Promise<string> {
     try {
       const credential = await this.getUserCredential();
-      
+
       if (!credential) return 'Utilisateur';
-      
+
+      if (credential.displayName) {
+        return credential.displayName;
+      }
+
       if (credential.isGuest) {
         return 'Invité';
       }
-      
+
       if (credential.fullName?.givenName) {
         return credential.fullName.givenName;
       }
@@ -94,6 +100,48 @@ class AuthService {
     } catch (error) {
       console.error('Error getting email:', error);
       return null;
+    }
+  }
+
+  async getAvatarUri(): Promise<string | null> {
+    try {
+      const credential = await this.getUserCredential();
+      return credential?.avatarUri || null;
+    } catch (error) {
+      console.error('Error getting avatar uri:', error);
+      return null;
+    }
+  }
+
+  async updateProfile({
+    displayName,
+    avatarUri,
+  }: {
+    displayName?: string;
+    avatarUri?: string | null;
+  }): Promise<UserCredential> {
+    try {
+      const existingCredential =
+        (await this.getUserCredential()) || {
+          isGuest: true,
+          createdAt: Date.now(),
+        };
+
+      const updatedCredential: UserCredential = {
+        ...existingCredential,
+        ...(displayName !== undefined ? { displayName } : {}),
+        ...(avatarUri !== undefined ? { avatarUri } : {}),
+      };
+
+      await AsyncStorage.setItem(
+        this.STORAGE_KEY,
+        JSON.stringify(updatedCredential)
+      );
+
+      return updatedCredential;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw new Error('Impossible de mettre à jour le profil');
     }
   }
 }

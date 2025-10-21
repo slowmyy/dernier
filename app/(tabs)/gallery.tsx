@@ -282,8 +282,8 @@ export default function Gallery() {
 
   const handleDeleteImage = useCallback(async (image: StoredImage) => {
     Alert.alert(
-      `Supprimer ${image.isVideo ? 'la vidéo' : 'l\'image'}`,
-      `Êtes-vous sûr de vouloir supprimer ${image.isVideo ? 'cette vidéo' : 'cette image'} ?`,
+      'Êtes-vous sûr de vouloir supprimer ce fichier ?',
+      "Cette action ne peut pas être annulée et les crédits ne seront pas remboursés.",
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -293,17 +293,14 @@ export default function Gallery() {
             try {
               console.log('🗑️ Suppression du média:', image.id);
 
-              // Suppression du média
               if (image.isVideo) {
                 await storageService.deleteVideo(image.id);
               } else {
                 await storageService.deleteImage(image.id);
               }
 
-              // Rafraîchissement de la galerie
               await refreshMedia();
 
-              // Fermeture du modal APRÈS la suppression
               if (selectedImage?.id === image.id) {
                 handleCloseModal();
               }

@@ -90,12 +90,18 @@ export default function LoginScreen() {
       });
 
       // Sauvegarder les infos utilisateur
+      const defaultDisplayName =
+        credential.fullName?.givenName ||
+        (credential.email ? credential.email.split('@')[0] : 'Utilisateur');
+
       await AsyncStorage.setItem('userCredential', JSON.stringify({
         user: credential.user,
         email: credential.email,
         fullName: credential.fullName,
         identityToken: credential.identityToken,
         authorizationCode: credential.authorizationCode,
+        displayName: defaultDisplayName,
+        avatarUri: null,
         isGuest: false,
         createdAt: Date.now()
       }));
@@ -135,6 +141,8 @@ export default function LoginScreen() {
       // Sauvegarder l'état invité
       await AsyncStorage.setItem('userCredential', JSON.stringify({
         isGuest: true,
+        displayName: 'Invité',
+        avatarUri: null,
         createdAt: Date.now()
       }));
 
