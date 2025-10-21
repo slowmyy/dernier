@@ -50,9 +50,10 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
       if (item.isLocalRef) {
         try {
           const url = await storageService.getImageUrl(item);
+          console.log('🎬 [VideoThumbnail] URL chargée pour thumbnail');
           setActualUrl(url);
         } catch (error) {
-          console.error('Error loading video URL:', error);
+          console.error('❌ [VideoThumbnail] Erreur chargement URL:', error);
         }
       }
     };
@@ -61,6 +62,7 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
 
   const handlePress = useCallback(() => {
     const resolvedUrl = actualUrl && actualUrl.trim() !== '' ? actualUrl : item.url;
+    console.log('👆 [VideoThumbnail] Clic sur vignette vidéo, ouverture fullscreen');
     onPress({ ...item, resolvedUrl });
   }, [actualUrl, item, onPress]);
 
@@ -75,11 +77,14 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
       <Video
         source={{ uri: videoSourceUri }}
         style={styles.thumbnailImage}
-        resizeMode={ResizeMode.CONTAIN}
+        resizeMode={ResizeMode.COVER}
         shouldPlay={false}
         isLooping={false}
         isMuted
-        onLoad={() => setThumbnailLoaded(true)}
+        onLoad={() => {
+          console.log('✅ [VideoThumbnail] Thumbnail vidéo chargée');
+          setThumbnailLoaded(true);
+        }}
       />
 
       {!thumbnailLoaded && (
@@ -739,7 +744,10 @@ const MediaItem = ({
   useEffect(() => {
     let isMounted = true;
 
+    console.log('🎬 [MediaItem] Initialisation pour:', item?.isVideo ? 'VIDÉO' : 'IMAGE', 'ID:', item?.id);
+
     if (!item) {
+      console.log('⚠️ [MediaItem] Item null, reset state');
       setActualImageUrl('');
       setImageLoading(false);
       setVideoReady(false);
@@ -749,14 +757,27 @@ const MediaItem = ({
     }
 
     // Réinitialiser l'état de la vidéo quand l'item change
+    console.log('🔄 [MediaItem] Reset videoReady pour nouvel item');
     setVideoReady(false);
 
     const hasResolvedUrl = Boolean(item.resolvedUrl && item.resolvedUrl.trim() !== '');
     const fallbackUrl = hasResolvedUrl ? item.resolvedUrl! : item.url;
 
+    console.log('🔗 [MediaItem] URL resolution:', { hasResolvedUrl, fallbackUrl: fallbackUrl.substring(0, 50) + '...' });
+
     if (hasResolvedUrl) {
+      console.log('✅ [MediaItem] URL déjà résolue, utilisation directe');
       setActualImageUrl(fallbackUrl);
       setImageLoading(false);
+      // Pour les vidéos, on affiche immédiatement (pas d'attente)
+      if (item.isVideo) {
+        console.log('🎬 [MediaItem] Vidéo avec URL résolue, affichage immédiat dans 500ms');
+        setTimeout(() => {
+          if (isMounted) {
+            setVideoReady(true);
+          }
+        }, 500);
+      }
       return () => {
         isMounted = false;
       };
@@ -766,21 +787,26 @@ const MediaItem = ({
     setImageLoading(true);
 
     const loadActualUrl = async () => {
+      console.log('⏳ [MediaItem] Chargement URL depuis storage...');
       try {
         const url = await storageService.getImageUrl(item);
         if (!isMounted) return;
 
         if (url && url.trim() !== '') {
+          console.log('✅ [MediaItem] URL chargée avec succès');
           setActualImageUrl(url);
         } else {
+          console.log('⚠️ [MediaItem] URL vide, utilisation fallback');
           setActualImageUrl(fallbackUrl);
         }
       } catch (error) {
+        console.error('❌ [MediaItem] Erreur chargement URL:', error);
         if (isMounted) {
           setActualImageUrl(fallbackUrl);
         }
       } finally {
         if (isMounted) {
+          console.log('🏁 [MediaItem] Chargement terminé');
           setImageLoading(false);
         }
       }
@@ -801,25 +827,38 @@ const MediaItem = ({
         {imageLoading || !actualImageUrl ? (
           <View style={styles.modalImageLoading}>
             <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.loadingText}>Chargement du média...</Text>
           </View>
         ) : item.isVideo ? (
           <>
             {!videoReady && (
               <View style={styles.modalImageLoading}>
                 <ActivityIndicator size="large" color="#007AFF" />
+                <Text style={styles.loadingText}>Préparation de la vidéo...</Text>
               </View>
             )}
             <Video
               source={{ uri: actualImageUrl }}
               style={styles.fullscreenMedia}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay={videoReady}
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={false}
               isLooping
               useNativeControls
-              onReadyForDisplay={() => setVideoReady(true)}
+              onReadyForDisplay={() => {
+                console.log('🎬 [Video] onReadyForDisplay déclenché');
+                setVideoReady(true);
+              }}
               onLoad={() => {
-                // Fallback au cas où onReadyForDisplay ne se déclenche pas
-                setTimeout(() => setVideoReady(true), 100);
+                console.log('📹 [Video] onLoad déclenché');
+                // Fallback robuste au cas où onReadyForDisplay ne se déclenche pas
+                setTimeout(() => {
+                  console.log('⏱️ [Video] Fallback timeout activé');
+                  setVideoReady(true);
+                }, 1000);
+              }}
+              onError={(error) => {
+                console.error('❌ [Video] Erreur de chargement:', error);
+                setVideoReady(true); // Afficher quand même pour ne pas bloquer
               }}
             />
           </>
@@ -1325,16 +1364,24 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fullscreenMedia: {
     width: '100%',
     height: '100%',
   },
   modalImageLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
-    height: '100%',
+    backgroundColor: '#000000',
+    zIndex: 100,
+    gap: 12,
   },
   fullscreenPromptContainer: {
     position: 'absolute',
