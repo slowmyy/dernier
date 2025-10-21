@@ -759,8 +759,6 @@ const MediaItem = ({
   const [imageLoading, setImageLoading] = useState(true);
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
-  // 🆕 Stocker les dimensions natives de la vidéo pour un affichage correct dès le 1er clic
-  const [nativeVideoDimensions, setNativeVideoDimensions] = useState<{width: number, height: number} | null>(null);
 
   const imageAspectRatio = useMemo(() => {
     if (item?.dimensions) {
@@ -787,7 +785,6 @@ const MediaItem = ({
       setActualImageUrl('');
       setImageLoading(false);
       setVideoReady(false);
-      setNativeVideoDimensions(null);
       return () => {
         isMounted = false;
       };
@@ -795,7 +792,6 @@ const MediaItem = ({
 
     // Réinitialiser l'état de la vidéo quand l'item change
     setVideoReady(false);
-    setNativeVideoDimensions(null);
 
     const hasResolvedUrl = Boolean(item.resolvedUrl && item.resolvedUrl.trim() !== '');
     const fallbackUrl = hasResolvedUrl ? item.resolvedUrl! : item.url;
@@ -840,17 +836,10 @@ const MediaItem = ({
   }, [item]);
 
   const getMediaAspectRatio = () => {
-    // 🆕 PRIORITÉ 1: Utiliser les dimensions natives capturées (garantit le bon ratio au 1er clic)
-    if (item.isVideo && nativeVideoDimensions) {
-      return nativeVideoDimensions.width / nativeVideoDimensions.height;
-    }
-
-    // PRIORITÉ 2: Utiliser les métadonnées stockées de l'item
     if (item.isVideo && item.videoWidth && item.videoHeight) {
       return item.videoWidth / item.videoHeight;
     }
 
-    // PRIORITÉ 3: Parser les dimensions du champ "dimensions"
     if (item.dimensions) {
       const [rawWidth, rawHeight] = item.dimensions
         .toLowerCase()
@@ -862,7 +851,6 @@ const MediaItem = ({
       }
     }
 
-    // PRIORITÉ 4: Fallback (sera remplacé dès que onReadyForDisplay se déclenche)
     if (item.isVideo) {
       return 9 / 16;
     }
@@ -892,7 +880,7 @@ const MediaItem = ({
         height: availableHeight,
       };
     }
-  }, [fullscreenHeight, fullscreenWidth, mediaAspectRatio, nativeVideoDimensions]);
+  }, [fullscreenHeight, fullscreenWidth, mediaAspectRatio]);
 
   const fullscreenVideoResizeMode = ResizeMode.CONTAIN;
 
@@ -906,35 +894,19 @@ const MediaItem = ({
           </View>
         ) : item.isVideo ? (
           <>
-            {/* 🆕 Afficher le loader jusqu'à ce que les dimensions natives soient capturées ET la vidéo prête */}
-            {(!videoReady || !nativeVideoDimensions) && (
+            {!videoReady && (
               <View style={styles.modalImageLoading}>
                 <ActivityIndicator size="large" color="#007AFF" />
               </View>
             )}
             <Video
               source={{ uri: actualImageUrl }}
-              style={[
-                styles.fullscreenMedia,
-                mediaDimensions,
-                // 🆕 Masquer la vidéo tant que les dimensions natives ne sont pas capturées (évite l'affichage incorrect)
-                { opacity: nativeVideoDimensions ? 1 : 0 }
-              ]}
+              style={[styles.fullscreenMedia, mediaDimensions]}
               resizeMode={fullscreenVideoResizeMode}
-              shouldPlay={videoReady && nativeVideoDimensions !== null}
+              shouldPlay={videoReady}
               isLooping
               useNativeControls
-              onReadyForDisplay={(event) => {
-                // 🆕 Capturer les dimensions natives RÉELLES de la vidéo pour un affichage correct
-                if (event?.naturalSize?.width && event?.naturalSize?.height) {
-                  console.log('📐 [VIDEO] Dimensions natives capturées:', event.naturalSize.width, 'x', event.naturalSize.height);
-                  setNativeVideoDimensions({
-                    width: event.naturalSize.width,
-                    height: event.naturalSize.height
-                  });
-                }
-                setVideoReady(true);
-              }}
+              onReadyForDisplay={() => setVideoReady(true)}
               onLoad={() => {
                 // Fallback au cas où onReadyForDisplay ne se déclenche pas
                 setTimeout(() => setVideoReady(true), 100);
