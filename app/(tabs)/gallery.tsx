@@ -24,6 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { storageService, StoredImage } from '@/services/storage';
 import { galleryEvents } from '@/services/galleryEvents'; // 🆕 Import pour notifier les mises à jour de galerie
 import { Video, ResizeMode } from 'expo-av';
@@ -205,6 +206,7 @@ export default function Gallery() {
   const [itemToDelete, setItemToDelete] = useState<StoredImage | null>(null);
   const [isProfileEditModalVisible, setIsProfileEditModalVisible] = useState(false);
   const [editedUsername, setEditedUsername] = useState(username);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const scrollY = useSharedValue(0);
   const glowAnim = useRef(new RNAnimated.Value(0)).current;
@@ -341,6 +343,31 @@ export default function Gallery() {
     setIsProfileEditModalVisible(false);
     Alert.alert('Succès', 'Profil mis à jour avec succès!');
   }, [editedUsername]);
+
+  const handleChangeProfileImage = useCallback(async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission requise', 'L\'accès à la galerie est nécessaire pour changer la photo de profil.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error changing profile image:', error);
+      Alert.alert('Erreur', 'Impossible de changer la photo de profil. Veuillez réessayer.');
+    }
+  }, []);
 
   const handleDownloadImage = useCallback(async (image: StoredImage) => {
     setIsDownloading(true);
@@ -510,7 +537,11 @@ export default function Gallery() {
               <View style={styles.userSection}>
                 <View style={styles.avatarContainer}>
                   <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>U</Text>
+                    {profileImage ? (
+                      <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+                    ) : (
+                      <Text style={styles.avatarText}>U</Text>
+                    )}
                   </View>
                 </View>
                 <Text style={styles.username}>{username}</Text>
@@ -664,9 +695,20 @@ export default function Gallery() {
               <View style={styles.profileEditContent}>
                 <View style={styles.profileEditAvatarSection}>
                   <View style={styles.profileEditAvatar}>
-                    <Text style={styles.profileEditAvatarText}>U</Text>
+                    {profileImage ? (
+                      <Image source={{ uri: profileImage }} style={styles.profileEditAvatarImage} />
+                    ) : (
+                      <Text style={styles.profileEditAvatarText}>U</Text>
+                    )}
                   </View>
-                  <Text style={styles.profileEditAvatarLabel}>Photo de profil</Text>
+                  <TouchableOpacity
+                    style={styles.changePhotoButton}
+                    onPress={handleChangeProfileImage}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="camera" size={18} color="#007AFF" />
+                    <Text style={styles.changePhotoButtonText}>Changer la photo</Text>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.profileEditInputSection}>
@@ -1509,10 +1551,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   profileEditModalContainer: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#111111',
     borderRadius: 24,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 350,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
@@ -1595,6 +1637,34 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
+  },
+  profileEditAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+  },
+  changePhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 122, 255, 0.3)',
+  },
+  changePhotoButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
 
