@@ -758,6 +758,7 @@ const MediaItem = ({
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(true);
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
 
   const imageAspectRatio = useMemo(() => {
     if (item?.dimensions) {
@@ -783,10 +784,14 @@ const MediaItem = ({
     if (!item) {
       setActualImageUrl('');
       setImageLoading(false);
+      setVideoReady(false);
       return () => {
         isMounted = false;
       };
     }
+
+    // Réinitialiser l'état de la vidéo quand l'item change
+    setVideoReady(false);
 
     const hasResolvedUrl = Boolean(item.resolvedUrl && item.resolvedUrl.trim() !== '');
     const fallbackUrl = hasResolvedUrl ? item.resolvedUrl! : item.url;
@@ -888,14 +893,26 @@ const MediaItem = ({
             <ActivityIndicator size="large" color="#007AFF" />
           </View>
         ) : item.isVideo ? (
-          <Video
-            source={{ uri: actualImageUrl }}
-            style={[styles.fullscreenMedia, mediaDimensions]}
-            resizeMode={fullscreenVideoResizeMode}
-            shouldPlay
-            isLooping
-            useNativeControls
-          />
+          <>
+            {!videoReady && (
+              <View style={styles.modalImageLoading}>
+                <ActivityIndicator size="large" color="#007AFF" />
+              </View>
+            )}
+            <Video
+              source={{ uri: actualImageUrl }}
+              style={[styles.fullscreenMedia, mediaDimensions]}
+              resizeMode={fullscreenVideoResizeMode}
+              shouldPlay={videoReady}
+              isLooping
+              useNativeControls
+              onReadyForDisplay={() => setVideoReady(true)}
+              onLoad={() => {
+                // Fallback au cas où onReadyForDisplay ne se déclenche pas
+                setTimeout(() => setVideoReady(true), 100);
+              }}
+            />
+          </>
         ) : (
           <Image
             source={{ uri: actualImageUrl }}
