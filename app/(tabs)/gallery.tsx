@@ -812,7 +812,7 @@ const MediaItem = ({
             <Video
               source={{ uri: actualImageUrl }}
               style={styles.fullscreenMedia}
-              resizeMode={ResizeMode.CONTAIN}
+              resizeMode={ResizeMode.COVER}
               shouldPlay={videoReady}
               isLooping
               useNativeControls
@@ -1290,9 +1290,8 @@ const styles = StyleSheet.create({
   mediaItemContainer: {
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').height,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#000000',
+    position: 'relative',
   },
   closeButtonTopLeft: {
     position: 'absolute',
@@ -1320,10 +1319,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullscreenMediaContainer: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#000000',
   },
   fullscreenMedia: {
