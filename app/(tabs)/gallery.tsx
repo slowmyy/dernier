@@ -39,7 +39,7 @@ const imageHeight = imageWidth * 1.15;
 
 type MediaType = 'photos' | 'videos';
 
-const VideoThumbnail = ({ item, onPress, onDelete }: { item: StoredImage; onPress: (item: StoredImage) => void; onDelete: (item: StoredImage) => void }) => {
+const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [actualUrl, setActualUrl] = useState<string>(item.url);
 
@@ -109,24 +109,11 @@ const VideoThumbnail = ({ item, onPress, onDelete }: { item: StoredImage; onPres
           <ActivityIndicator size="small" color="#007AFF" />
         </View>
       )}
-
-      <TouchableOpacity
-        style={styles.deleteIconOverlay}
-        onPress={(e) => {
-          e.stopPropagation();
-          onDelete(item);
-        }}
-        activeOpacity={0.7}
-      >
-        <View style={styles.deleteIconBackground}>
-          <Ionicons name="trash" size={18} color="#FFFFFF" />
-        </View>
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
 
-const ImageThumbnail = ({ item, onPress, onDelete }: { item: StoredImage; onPress: (item: StoredImage) => void; onDelete: (item: StoredImage) => void }) => {
+const ImageThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(false);
@@ -191,28 +178,15 @@ const ImageThumbnail = ({ item, onPress, onDelete }: { item: StoredImage; onPres
           />
         )
       )}
-
-      <TouchableOpacity
-        style={styles.deleteIconOverlay}
-        onPress={(e) => {
-          e.stopPropagation();
-          onDelete(item);
-        }}
-        activeOpacity={0.7}
-      >
-        <View style={styles.deleteIconBackground}>
-          <Ionicons name="trash" size={18} color="#FFFFFF" />
-        </View>
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
 
-const GalleryItem = ({ item, onPress, onDelete }: { item: StoredImage; onPress: (item: StoredImage) => void; onDelete: (item: StoredImage) => void }) => {
+const GalleryItem = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
   if (item.isVideo) {
-    return <VideoThumbnail item={item} onPress={onPress} onDelete={onDelete} />;
+    return <VideoThumbnail item={item} onPress={onPress} />;
   }
-  return <ImageThumbnail item={item} onPress={onPress} onDelete={onDelete} />;
+  return <ImageThumbnail item={item} onPress={onPress} />;
 };
 
 export default function Gallery() {
@@ -224,8 +198,6 @@ export default function Gallery() {
   const [isSharing, setIsSharing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
   const [username] = useState('username_9221...');
-  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<StoredImage | null>(null);
 
   const scrollY = useSharedValue(0);
   const glowAnim = useRef(new RNAnimated.Value(0)).current;
@@ -308,46 +280,41 @@ export default function Gallery() {
     }
   }, []);
 
-  const handleDeleteRequest = useCallback((image: StoredImage) => {
-    setItemToDelete(image);
-    setDeleteConfirmVisible(true);
-  }, []);
+  const handleDeleteImage = useCallback(async (image: StoredImage) => {
+    Alert.alert(
+      'Êtes-vous sûr de vouloir supprimer ce fichier ?',
+      "Cette action ne peut pas être annulée et les crédits ne seront pas remboursés.",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('🗑️ Suppression du média:', image.id);
 
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!itemToDelete) return;
+              if (image.isVideo) {
+                await storageService.deleteVideo(image.id);
+              } else {
+                await storageService.deleteImage(image.id);
+              }
 
-    try {
-      console.log('🗑️ Suppression du média:', itemToDelete.id);
-      setDeleteConfirmVisible(false);
+              await refreshMedia();
 
-      // Suppression du média
-      if (itemToDelete.isVideo) {
-        await storageService.deleteVideo(itemToDelete.id);
-      } else {
-        await storageService.deleteImage(itemToDelete.id);
-      }
+              if (selectedImage?.id === image.id) {
+                handleCloseModal();
+              }
 
-      // Rafraîchissement de la galerie
-      await refreshMedia();
-
-      // Fermeture du modal APRÈS la suppression
-      if (selectedImage?.id === itemToDelete.id) {
-        handleCloseModal();
-      }
-
-      setItemToDelete(null);
-      console.log('✅ Média supprimé avec succès');
-    } catch (error) {
-      console.error('❌ Erreur lors de la suppression:', error);
-      Alert.alert('Erreur', 'Impossible de supprimer le média');
-    }
-  }, [itemToDelete, selectedImage, refreshMedia, handleCloseModal]);
-
-  const handleDeleteCancel = useCallback(() => {
-    setDeleteConfirmVisible(false);
-    setItemToDelete(null);
-  }, []);
-
+              console.log('✅ Média supprimé avec succès');
+            } catch (error) {
+              console.error('❌ Erreur lors de la suppression:', error);
+              Alert.alert('Erreur', 'Impossible de supprimer le média');
+            }
+          },
+        },
+      ]
+    );
+  }, [selectedImage, refreshMedia, handleCloseModal]);
 
   const handleDownloadImage = useCallback(async (image: StoredImage) => {
     setIsDownloading(true);
@@ -428,8 +395,8 @@ export default function Gallery() {
   }, [handleCloseModal]);
 
   const renderImageItem = useCallback(({ item }: { item: StoredImage }) => {
-    return <GalleryItem item={item} onPress={handleImagePress} onDelete={handleDeleteRequest} />;
-  }, [handleImagePress, handleDeleteRequest]);
+    return <GalleryItem item={item} onPress={handleImagePress} />;
+  }, [handleImagePress]);
 
   const keyExtractor = useCallback((item: StoredImage) => item.id, []);
 
@@ -605,48 +572,11 @@ export default function Gallery() {
             onClose={handleCloseModal}
             onDownload={handleDownloadImage}
             onShare={handleShareImage}
-            onDelete={handleDeleteRequest}
+            onDelete={handleDeleteImage}
             onAnimate={handleAnimateImage}
             isDownloading={isDownloading}
             isSharing={isSharing}
           />
-        </Modal>
-
-        {/* Modal de confirmation de suppression personnalisé */}
-        <Modal
-          visible={deleteConfirmVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={handleDeleteCancel}
-        >
-          <View style={styles.deleteModalOverlay}>
-            <View style={styles.deleteModalContainer}>
-              <Text style={styles.deleteModalTitle}>
-                Êtes-vous sûr de vouloir supprimer ce fichier ?
-              </Text>
-              <Text style={styles.deleteModalMessage}>
-                Cette action ne peut pas être annulée et les crédits ne seront pas remboursés.
-              </Text>
-
-              <View style={styles.deleteModalButtons}>
-                <TouchableOpacity
-                  style={[styles.deleteModalButton, styles.deleteModalButtonDelete]}
-                  onPress={handleDeleteConfirm}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.deleteModalButtonTextDelete}>Supprimer</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.deleteModalButton, styles.deleteModalButtonCancel]}
-                  onPress={handleDeleteCancel}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.deleteModalButtonTextCancel}>Annuler</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
         </Modal>
       </SafeAreaView>
     </View>
@@ -1388,82 +1318,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  // Delete icon overlay on thumbnails
-  deleteIconOverlay: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
-  },
-  deleteIconBackground: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 16,
-    padding: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Delete confirmation modal
-  deleteModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  deleteModalContainer: {
-    backgroundColor: 'rgba(50, 50, 52, 0.98)',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  deleteModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 24,
-  },
-  deleteModalMessage: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  deleteModalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  deleteModalButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteModalButtonDelete: {
-    backgroundColor: 'rgba(40, 40, 42, 1)',
-  },
-  deleteModalButtonCancel: {
-    backgroundColor: 'rgba(99, 99, 102, 1)',
-  },
-  deleteModalButtonTextDelete: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FF453A',
-  },
-  deleteModalButtonTextCancel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
 });
 
