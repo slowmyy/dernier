@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import FormatSelector, { VideoFormat } from './FormatSelector';
 
 export interface VideoStyle {
   id: string;
@@ -25,6 +26,10 @@ interface AdvancedPanelProps {
   onImportImage: () => void;
   referenceImagePreview: string | null;
   onRemoveImage: () => void;
+  // Format selector props
+  formats?: VideoFormat[];
+  selectedFormat?: VideoFormat;
+  onSelectFormat?: (format: VideoFormat) => void;
 }
 
 export default function AdvancedPanel({
@@ -35,6 +40,9 @@ export default function AdvancedPanel({
   onImportImage,
   referenceImagePreview,
   onRemoveImage,
+  formats,
+  selectedFormat,
+  onSelectFormat,
 }: AdvancedPanelProps) {
   const animatedHeight = useRef(new Animated.Value(0)).current;
   const animatedOpacity = useRef(new Animated.Value(0)).current;
@@ -120,6 +128,15 @@ export default function AdvancedPanel({
         </ScrollView>
       </View>
 
+      {/* Format vidéo */}
+      {formats && selectedFormat && onSelectFormat && (
+        <FormatSelector
+          formats={formats}
+          selectedFormat={selectedFormat}
+          onSelectFormat={onSelectFormat}
+        />
+      )}
+
       {/* Import d'image */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Image de référence (optionnelle)</Text>
@@ -143,9 +160,10 @@ export default function AdvancedPanel({
             onPress={onImportImage}
             activeOpacity={0.7}
           >
-            <Ionicons name="image-outline" size={32} color="#2d7dff" />
-            <Text style={styles.uploadText}>Importer une image</Text>
-            <Text style={styles.uploadHint}>Pour mode image-to-video</Text>
+            <Ionicons name="image-outline" size={36} color="#2d7dff" />
+            <Text style={styles.uploadText}>
+              Appuyez ici pour uploader la photo à laquelle vous voulez donner vie !
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -216,16 +234,14 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     backgroundColor: 'rgba(45, 125, 255, 0.05)',
-    gap: 8,
+    gap: 12,
   },
   uploadText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#2d7dff',
-  },
-  uploadHint: {
-    fontSize: 12,
-    color: '#b3b3b3',
+    fontWeight: '500',
+    color: '#ffffff',
+    textAlign: 'center',
+    lineHeight: 22,
   },
   imagePreviewContainer: {
     position: 'relative',
