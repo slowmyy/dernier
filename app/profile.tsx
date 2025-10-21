@@ -108,6 +108,8 @@ export default function Profile() {
 
       // Fermeture de la modal
       setIsEditModalVisible(false);
+      
+      Alert.alert('Succès', 'Profil mis à jour avec succès');
     } catch (error) {
       console.error('Erreur mise à jour profil:', error);
       Alert.alert('Erreur', 'Impossible de mettre à jour le profil');
@@ -175,8 +177,8 @@ export default function Profile() {
 
           <View style={styles.nameRow}>
             <Text style={styles.displayName}>{displayName}</Text>
-            <TouchableOpacity style={styles.editIconButton} onPress={handleOpenEditModal} activeOpacity={0.7}>
-              <Ionicons name="pencil" size={16} color="#FFFFFF" />
+            <TouchableOpacity style={styles.editIconButton} onPress={handleOpenEditModal}>
+              <Ionicons name="create-outline" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -401,10 +403,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   editIconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#000000',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1C1C1E',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,
@@ -496,14 +498,14 @@ const styles = StyleSheet.create({
   // 🆕 Styles de la modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    width: '88%',
-    maxWidth: 400,
-    backgroundColor: '#23232D',
+    width: '85%',
+    maxWidth: 380,
+    backgroundColor: '#1C1C1E',
     borderRadius: 28,
     overflow: 'hidden',
   },
@@ -511,32 +513,31 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 24,
-    paddingBottom: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
   modalCloseButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#2C2C2E',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
-    left: 28,
-    top: 24,
+    left: 24,
+    top: 20,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: 0.3,
   },
   modalContent: {
-    paddingTop: 16,
-    paddingHorizontal: 28,
-    paddingBottom: 32,
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
     alignItems: 'center',
   },
   modalAvatarContainer: {
@@ -546,8 +547,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 12,
     backgroundColor: '#2C2C2E',
-    borderWidth: 3,
-    borderColor: '#3A3A3C',
+    borderWidth: 2,
+    borderColor: '#2F2F31',
   },
   modalAvatarImage: {
     width: '100%',
@@ -560,15 +561,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   changePhotoText: {
-    fontSize: 15,
-    color: '#5AC8FA',
-    marginBottom: 32,
+    fontSize: 14,
+    color: '#0A84FF',
+    marginBottom: 28,
     fontWeight: '600',
-    letterSpacing: 0.2,
   },
   inputContainer: {
     width: '100%',
-    marginBottom: 32,
+    marginBottom: 28,
   },
   inputLabel: {
     fontSize: 13,
@@ -579,11 +579,10 @@ const styles = StyleSheet.create({
   input: {
     width: '100%',
     backgroundColor: '#2C2C2E',
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    fontSize: 17,
-    fontWeight: '500',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
     color: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#3A3A3C',
