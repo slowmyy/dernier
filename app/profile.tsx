@@ -17,7 +17,6 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { runwareService, UserPlan } from '@/services/runware';
 import { authService, UserCredential } from '@/services/auth';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Profile() {
   const [userPlan, setUserPlan] = useState<UserPlan>(runwareService.getUserPlan());
@@ -254,17 +253,22 @@ export default function Profile() {
         visible={isEditModalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={() => setIsEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             {/* Header Modal */}
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#FFFFFF" />
+              <TouchableOpacity
+                onPress={() => setIsEditModalVisible(false)}
+                style={styles.modalCloseButton}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={22} color="#8E8E93" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Edit Profile</Text>
-              <View style={styles.modalHeaderSpacer} />
             </View>
 
             {/* Photo de profil */}
@@ -284,7 +288,7 @@ export default function Profile() {
               </TouchableOpacity>
 
               <TouchableOpacity onPress={handleChangePhoto} disabled={isUpdatingProfile} activeOpacity={0.7}>
-                <Text style={styles.changePhotoText}>Change Photo</Text>
+                <Text style={styles.changePhotoText}>Change photo</Text>
               </TouchableOpacity>
 
               {/* Username Input */}
@@ -294,7 +298,7 @@ export default function Profile() {
                   style={styles.input}
                   value={editNameInput}
                   onChangeText={setEditNameInput}
-                  placeholder="Entrez votre nom"
+                  placeholder="Username"
                   placeholderTextColor="#8E8E93"
                   editable={!isUpdatingProfile}
                 />
@@ -302,23 +306,16 @@ export default function Profile() {
 
               {/* Bouton Save */}
               <TouchableOpacity
-                style={[styles.saveButtonWrapper, isUpdatingProfile && styles.saveButtonDisabled]}
+                style={[styles.saveButton, isUpdatingProfile && styles.saveButtonDisabled]}
                 onPress={handleSaveProfile}
                 disabled={isUpdatingProfile}
                 activeOpacity={0.85}
               >
-                <LinearGradient
-                  colors={['#0A84FF', '#0051FF']}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={styles.saveButtonGradient}
-                >
-                  {isUpdatingProfile ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.saveButtonText}>Save</Text>
-                  )}
-                </LinearGradient>
+                {isUpdatingProfile ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -494,48 +491,56 @@ const styles = StyleSheet.create({
   // 🆕 Styles de la modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 24,
   },
   modalContainer: {
-    width: '85%',
+    width: '90%',
     maxWidth: 380,
-    backgroundColor: '#1C1C1E',
-    borderRadius: 24,
-    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 32,
+    shadowColor: '#0A0A0A',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 12,
+    justifyContent: 'center',
+    marginBottom: 24,
+    paddingTop: 4,
   },
-  modalHeaderSpacer: {
-    width: 28,
+  modalCloseButton: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    padding: 6,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1C1C1E',
   },
   modalContent: {
-    paddingTop: 12,
-    paddingHorizontal: 24,
-    paddingBottom: 28,
+    width: '100%',
     alignItems: 'center',
   },
   modalAvatarContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 124,
+    height: 124,
+    borderRadius: 62,
     overflow: 'hidden',
     marginBottom: 12,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F2F2F7',
     borderWidth: 2,
-    borderColor: '#2F2F31',
+    borderColor: '#E5E5EA',
   },
   modalAvatarImage: {
     width: '100%',
@@ -548,8 +553,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   changePhotoText: {
-    fontSize: 14,
-    color: '#0A84FF',
+    fontSize: 15,
+    color: '#007AFF',
     marginBottom: 28,
     fontWeight: '600',
   },
@@ -559,31 +564,33 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 13,
-    color: '#8E8E93',
-    marginBottom: 10,
+    color: '#3A3A3C',
+    marginBottom: 8,
     alignSelf: 'flex-start',
   },
   input: {
     width: '100%',
-    backgroundColor: '#2C2C2E',
-    borderRadius: 12,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     borderWidth: 1,
-    borderColor: '#3A3A3C',
+    borderColor: '#E5E5EA',
   },
-  saveButtonWrapper: {
+  saveButton: {
     width: '100%',
     borderRadius: 14,
-    overflow: 'hidden',
-  },
-  saveButtonGradient: {
-    width: '100%',
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#0A84FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   saveButtonDisabled: {
     opacity: 0.6,
