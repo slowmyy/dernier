@@ -31,6 +31,7 @@ import { useMediaCache } from '@/contexts/MediaCacheContext';
 import { COLORS } from '@/constants/Colors';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width: screenWidth } = Dimensions.get('window');
 const NUM_COLUMNS = 3;
@@ -201,10 +202,12 @@ export default function Gallery() {
   const [isSharing, setIsSharing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
   const [username, setUsername] = useState('username_9221...');
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<StoredImage | null>(null);
   const [isProfileEditModalVisible, setIsProfileEditModalVisible] = useState(false);
   const [editedUsername, setEditedUsername] = useState(username);
+  const [editedProfilePhoto, setEditedProfilePhoto] = useState<string | null>(profilePhoto);
 
   const scrollY = useSharedValue(0);
   const glowAnim = useRef(new RNAnimated.Value(0)).current;
@@ -329,8 +332,9 @@ export default function Gallery() {
 
   const handleOpenProfileEdit = useCallback(() => {
     setEditedUsername(username);
+    setEditedProfilePhoto(profilePhoto);
     setIsProfileEditModalVisible(true);
-  }, [username]);
+  }, [username, profilePhoto]);
 
   const handleCloseProfileEdit = useCallback(() => {
     setIsProfileEditModalVisible(false);
@@ -338,9 +342,35 @@ export default function Gallery() {
 
   const handleSaveProfile = useCallback(() => {
     setUsername(editedUsername);
+    setProfilePhoto(editedProfilePhoto);
     setIsProfileEditModalVisible(false);
     Alert.alert('Succès', 'Profil mis à jour avec succès!');
-  }, [editedUsername]);
+  }, [editedUsername, editedProfilePhoto]);
+
+  const handleChangeProfilePhoto = useCallback(async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission refusée', 'Vous devez autoriser l\'accès à la galerie pour changer votre photo de profil.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setEditedProfilePhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sélection de la photo:', error);
+      Alert.alert('Erreur', 'Impossible de sélectionner une photo');
+    }
+  }, []);
 
   const handleDownloadImage = useCallback(async (image: StoredImage) => {
     setIsDownloading(true);
@@ -510,7 +540,11 @@ export default function Gallery() {
               <View style={styles.userSection}>
                 <View style={styles.avatarContainer}>
                   <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>U</Text>
+                    {profilePhoto ? (
+                      <Image source={{ uri: profilePhoto }} style={styles.avatarImage} />
+                    ) : (
+                      <Text style={styles.avatarText}>U</Text>
+                    )}
                   </View>
                 </View>
                 <Text style={styles.username}>{username}</Text>
@@ -663,10 +697,23 @@ export default function Gallery() {
 
               <View style={styles.profileEditContent}>
                 <View style={styles.profileEditAvatarSection}>
-                  <View style={styles.profileEditAvatar}>
-                    <Text style={styles.profileEditAvatarText}>U</Text>
-                  </View>
-                  <Text style={styles.profileEditAvatarLabel}>Photo de profil</Text>
+                  <TouchableOpacity
+                    style={styles.profileEditAvatarTouchable}
+                    onPress={handleChangeProfilePhoto}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.profileEditAvatar}>
+                      {editedProfilePhoto ? (
+                        <Image source={{ uri: editedProfilePhoto }} style={styles.profileEditAvatarImage} />
+                      ) : (
+                        <Text style={styles.profileEditAvatarText}>U</Text>
+                      )}
+                      <View style={styles.profileEditAvatarOverlay}>
+                        <Ionicons name="camera" size={24} color="#FFFFFF" />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                  <Text style={styles.profileEditAvatarLabel}>Toucher pour changer la photo</Text>
                 </View>
 
                 <View style={styles.profileEditInputSection}>
@@ -1139,6 +1186,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
+  },
   username: {
     flex: 1,
     fontSize: 18,
@@ -1503,16 +1555,16 @@ const styles = StyleSheet.create({
   // Profile edit modal styles
   profileEditModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.90)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
   profileEditModalContainer: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 24,
+    backgroundColor: '#0D0D0D',
+    borderRadius: 20,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 340,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
@@ -1523,76 +1575,95 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   profileEditTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   profileEditCloseButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileEditContent: {
-    padding: 24,
+    padding: 20,
   },
   profileEditAvatarSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  profileEditAvatarTouchable: {
+    marginBottom: 10,
   },
   profileEditAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: '#6C6C70',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  profileEditAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 45,
+  },
+  profileEditAvatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '35%',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileEditAvatarText: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '600',
     color: '#FFFFFF',
   },
   profileEditAvatarLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#8E8E93',
   },
   profileEditInputSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   profileEditLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 8,
   },
   profileEditInput: {
-    backgroundColor: '#2C2C2E',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     color: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   profileEditSaveButton: {
     backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 10,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileEditSaveButtonText: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
