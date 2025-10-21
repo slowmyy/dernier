@@ -27,7 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { storageService, StoredImage } from '@/services/storage';
 import { galleryEvents } from '@/services/galleryEvents'; // 🆕 Import pour notifier les mises à jour de galerie
-import { Video, ResizeMode } from 'expo-av';
+import { Video } from 'expo-av';
 import { useMediaCache } from '@/contexts/MediaCacheContext';
 import { COLORS } from '@/constants/Colors';
 import { router } from 'expo-router';
@@ -64,29 +64,6 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
     onPress({ ...item, resolvedUrl });
   }, [actualUrl, item, onPress]);
 
-  // 🆕 Détermination robuste du ratio vidéo (dimensions natives > métadonnées > fallback)
-  const getVideoAspectRatio = () => {
-    if (item.videoWidth && item.videoHeight) {
-      return item.videoWidth / item.videoHeight;
-    }
-
-    if (item.dimensions) {
-      const [rawWidth, rawHeight] = item.dimensions
-        .toLowerCase()
-        .split(/[x×]/)
-        .map(part => Number(part.trim()));
-
-      if (rawWidth > 0 && rawHeight > 0) {
-        return rawWidth / rawHeight;
-      }
-    }
-
-    return 9 / 16;
-  };
-
-  const videoAspectRatio = getVideoAspectRatio();
-  const itemAspectRatio = imageWidth / imageHeight;
-  const thumbnailResizeMode = ResizeMode.CONTAIN;
   const videoSourceUri = actualUrl && actualUrl.trim() !== '' ? actualUrl : item.url;
 
   return (
@@ -96,10 +73,9 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
       activeOpacity={0.8}
     >
       <Video
-        // 🆕 Utilisation de l'URL résolue la plus fiable
         source={{ uri: videoSourceUri }}
         style={styles.thumbnailImage}
-        resizeMode={thumbnailResizeMode} // 🆕 Respect dynamique du ratio vidéo
+        resizeMode="contain"
         shouldPlay={false}
         isLooping={false}
         isMuted
@@ -760,24 +736,6 @@ const MediaItem = ({
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
-  const imageAspectRatio = useMemo(() => {
-    if (item?.dimensions) {
-      const dimensionParts = item.dimensions
-        .toLowerCase()
-        .split(/[x×]/)
-        .map(part => Number(part.trim()));
-
-      if (dimensionParts.length === 2) {
-        const [width, height] = dimensionParts;
-        if (width > 0 && height > 0) {
-          return width / height;
-        }
-      }
-    }
-
-    return 3 / 4;
-  }, [item]);
-
   useEffect(() => {
     let isMounted = true;
 
@@ -835,55 +793,6 @@ const MediaItem = ({
     };
   }, [item]);
 
-  const getMediaAspectRatio = () => {
-    if (item.isVideo && item.videoWidth && item.videoHeight) {
-      return item.videoWidth / item.videoHeight;
-    }
-
-    if (item.dimensions) {
-      const [rawWidth, rawHeight] = item.dimensions
-        .toLowerCase()
-        .split(/[x×]/)
-        .map(part => Number(part.trim()));
-
-      if (rawWidth > 0 && rawHeight > 0) {
-        return rawWidth / rawHeight;
-      }
-    }
-
-    if (item.isVideo) {
-      return 9 / 16;
-    }
-
-    return imageAspectRatio;
-  };
-
-  const mediaAspectRatio = getMediaAspectRatio();
-  const { width: fullscreenWidth, height: fullscreenHeight } = Dimensions.get('window');
-
-  const mediaDimensions = useMemo(() => {
-    const safeAreaTop = 60;
-    const safeAreaBottom = 140;
-    const availableHeight = fullscreenHeight - safeAreaTop - safeAreaBottom;
-    const availableWidth = fullscreenWidth * 0.98;
-
-    const containerAspectRatio = availableWidth / availableHeight;
-
-    if (mediaAspectRatio > containerAspectRatio) {
-      return {
-        width: availableWidth,
-        height: availableWidth / mediaAspectRatio,
-      };
-    } else {
-      return {
-        width: availableHeight * mediaAspectRatio,
-        height: availableHeight,
-      };
-    }
-  }, [fullscreenHeight, fullscreenWidth, mediaAspectRatio]);
-
-  const fullscreenVideoResizeMode = ResizeMode.CONTAIN;
-
   return (
     <View style={styles.mediaItemContainer}>
       {/* Média en plein écran */}
@@ -902,7 +811,7 @@ const MediaItem = ({
             <Video
               source={{ uri: actualImageUrl }}
               style={styles.fullscreenMedia}
-              resizeMode={fullscreenVideoResizeMode}
+              resizeMode="contain"
               shouldPlay={videoReady}
               isLooping
               useNativeControls
@@ -1417,8 +1326,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   fullscreenMedia: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height,
+    width: '100%',
+    height: '100%',
   },
   modalImageLoading: {
     justifyContent: 'center',
