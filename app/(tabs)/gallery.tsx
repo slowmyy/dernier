@@ -86,7 +86,7 @@ const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: 
 
   const videoAspectRatio = getVideoAspectRatio();
   const itemAspectRatio = imageWidth / imageHeight;
-  const thumbnailResizeMode = ResizeMode.COVER;
+  const thumbnailResizeMode = ResizeMode.CONTAIN;
   const videoSourceUri = actualUrl && actualUrl.trim() !== '' ? actualUrl : item.url;
 
   return (
@@ -901,7 +901,7 @@ const MediaItem = ({
             )}
             <Video
               source={{ uri: actualImageUrl }}
-              style={[styles.fullscreenMedia, mediaDimensions]}
+              style={styles.fullscreenMedia}
               resizeMode={fullscreenVideoResizeMode}
               shouldPlay={videoReady}
               isLooping
@@ -916,7 +916,7 @@ const MediaItem = ({
         ) : (
           <Image
             source={{ uri: actualImageUrl }}
-            style={[styles.fullscreenMedia, mediaDimensions]}
+            style={styles.fullscreenMedia}
             resizeMode="contain"
             cache="force-cache"
             priority="high"
@@ -1417,6 +1417,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   fullscreenMedia: {
+    width: '100%',
+    height: '100%',
   },
   modalImageLoading: {
     justifyContent: 'center',
