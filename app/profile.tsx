@@ -7,7 +7,9 @@ import {
   Alert,
   TextInput,
   Image,
+  Modal,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +23,11 @@ export default function Profile() {
   const [userCredential, setUserCredential] = useState<UserCredential | null>(null);
   const [displayName, setDisplayName] = useState<string>('Utilisateur');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [nameInput, setNameInput] = useState<string>('');
+  
+  // 🆕 États pour la modal d'édition
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editNameInput, setEditNameInput] = useState<string>('');
+  const [editAvatarUri, setEditAvatarUri] = useState<string | null>(null);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState<boolean>(false);
 
   useEffect(() => {
@@ -33,21 +39,31 @@ export default function Profile() {
       const credential = await authService.getUserCredential();
       const name = await authService.getDisplayName();
       const storedAvatar = await authService.getAvatarUri();
+      
       setUserCredential(credential);
       setDisplayName(name);
       setAvatarUri(storedAvatar);
-      setNameInput(name);
+      setEditNameInput(name);
+      setEditAvatarUri(storedAvatar);
     } catch (error) {
       console.error('Erreur chargement info utilisateur:', error);
     }
   };
 
-  const handleSelectAvatar = async () => {
+  // 🆕 Ouvrir la modal d'édition
+  const handleOpenEditModal = () => {
+    setEditNameInput(displayName);
+    setEditAvatarUri(avatarUri);
+    setIsEditModalVisible(true);
+  };
+
+  // 🆕 Changer la photo dans la modal
+  const handleChangePhoto = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permissionResult.granted) {
-        Alert.alert('Permission requise', 'Veuillez autoriser l\'accès à la galerie pour changer votre photo de profil.');
+        Alert.alert('Permission requise', 'Veuillez autoriser l\'accès à la galerie');
         return;
       }
 
@@ -59,64 +75,60 @@ export default function Profile() {
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        setAvatarUri(result.assets[0].uri);
+        setEditAvatarUri(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Erreur sélection avatar:', error);
-      Alert.alert('Erreur', 'Impossible de sélectionner une photo de profil');
+      Alert.alert('Erreur', 'Impossible de sélectionner une photo');
     }
   };
 
+  // 🆕 Sauvegarder les modifications
   const handleSaveProfile = async () => {
-    const trimmedName = nameInput.trim();
+    const trimmedName = editNameInput.trim();
 
     if (!trimmedName) {
-      Alert.alert('Nom requis', 'Veuillez saisir un nom d\'utilisateur.');
+      Alert.alert('Nom requis', 'Veuillez saisir un nom d\'utilisateur');
       return;
     }
 
     try {
       setIsUpdatingProfile(true);
+      
       const updatedCredential = await authService.updateProfile({
         displayName: trimmedName,
-        avatarUri: avatarUri ?? null,
+        avatarUri: editAvatarUri,
       });
 
+      // Mise à jour des états locaux
       setDisplayName(trimmedName);
-      setNameInput(trimmedName);
+      setAvatarUri(editAvatarUri);
       setUserCredential(updatedCredential);
-      setAvatarUri(updatedCredential.avatarUri ?? null);
 
-      Alert.alert('Profil mis à jour', 'Vos informations ont bien été enregistrées.');
+      // Fermeture de la modal
+      setIsEditModalVisible(false);
+      
+      Alert.alert('Succès', 'Profil mis à jour avec succès');
     } catch (error) {
       console.error('Erreur mise à jour profil:', error);
-      Alert.alert('Erreur', 'Impossible de mettre à jour votre profil');
+      Alert.alert('Erreur', 'Impossible de mettre à jour le profil');
     } finally {
       setIsUpdatingProfile(false);
     }
   };
+
   const handleUpgradeToPremium = () => {
-    if (userPlan.isPremium) {
-      // For testing purposes, allow downgrading back to free
-      runwareService.downgradeToFree();
-      setUserPlan(runwareService.getUserPlan());
-      Alert.alert(
-        'Downgraded to Free',
-        'You are now using the free Flux Schnell model.',
-        [{ text: 'OK' }]
-      );
-    } else {
-      runwareService.upgradeToPremium();
-      setUserPlan(runwareService.getUserPlan());
-      Alert.alert(
-        'Upgraded to Premium!',
-        'You now have access to the Juggernaut Pro model with higher quality generations.',
-        [{ text: 'Awesome!' }]
-      );
-    }
+    const newPlan = runwareService.togglePremium();
+    setUserPlan(newPlan);
+    Alert.alert(
+      'Plan modifié',
+      newPlan.isPremium 
+        ? '✨ Vous êtes maintenant Premium! Profitez du modèle haute qualité.'
+        : 'Vous êtes revenu au plan Gratuit'
+    );
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     Alert.alert(
       'Déconnexion',
       'Êtes-vous sûr de vouloir vous déconnecter ?',
@@ -128,7 +140,7 @@ export default function Profile() {
           onPress: async () => {
             try {
               await authService.signOut();
-              router.replace('/auth/login');
+              router.replace('/');
             } catch (error) {
               Alert.alert('Erreur', 'Impossible de se déconnecter');
             }
@@ -137,188 +149,170 @@ export default function Profile() {
       ]
     );
   };
-  const SettingItem = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
-    isPremium = false 
-  }: {
-    icon: React.ReactNode;
-    title: string;
-    subtitle?: string;
-    onPress?: () => void;
-    isPremium?: boolean;
-  }) => (
-    <TouchableOpacity 
-      style={[styles.settingItem, isPremium && styles.premiumSettingItem]} 
-      onPress={onPress}
-      disabled={!onPress}
-    >
-      <View style={styles.settingIcon}>
-        {icon}
-      </View>
-      <View style={styles.settingContent}>
-        <Text style={[styles.settingTitle, isPremium && styles.premiumSettingTitle]}>
-          {title}
-        </Text>
-        {subtitle && (
-          <Text style={styles.settingSubtitle}>
-            {subtitle}
-          </Text>
-        )}
-      </View>
-      {isPremium && (
-        <Ionicons name="trophy" size={20} color="#FFD700" />
-      )}
-    </TouchableOpacity>
-  );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profil</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content}>
+        {/* 🎯 Section Profil avec bouton d'édition */}
         <View style={styles.profileSection}>
-          <TouchableOpacity
-            style={styles.avatarContainer}
-            onPress={handleSelectAvatar}
-            activeOpacity={0.8}
-          >
+          <View style={styles.avatarContainer}>
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
             ) : (
               <View style={styles.defaultAvatar}>
-                <Ionicons
-                  name="person"
-                  size={32}
-                  color={userCredential?.isGuest ? '#666666' : '#007AFF'}
-                />
+                <Ionicons name="person" size={64} color="#007AFF" />
               </View>
             )}
-            <View style={styles.avatarBadge}>
-              <Ionicons name="camera" size={16} color="#FFFFFF" />
-            </View>
+          </View>
+
+          <Text style={styles.displayName}>{displayName}</Text>
+          {userCredential?.email && (
+            <Text style={styles.email}>{userCredential.email}</Text>
+          )}
+
+          {/* 🆕 Bouton pour ouvrir la modal d'édition */}
+          <TouchableOpacity style={styles.editProfileButton} onPress={handleOpenEditModal}>
+            <Ionicons name="create-outline" size={20} color="#007AFF" />
+            <Text style={styles.editProfileText}>Modifier le profil</Text>
           </TouchableOpacity>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>{displayName}</Text>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => {
-                Alert.alert('Astuce', 'Modifiez votre nom ci-dessous puis appuyez sur "Envoyer".');
-              }}
-            >
-              <Ionicons name="create" size={20} color="#007AFF" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.subtitle}>
-            {userCredential?.isGuest ? 'Mode invité' : 'Compte connecté'}
-          </Text>
-
-          <View style={styles.profileForm}>
-            <Text style={styles.inputLabel}>Nom d'utilisateur</Text>
-            <TextInput
-              style={styles.input}
-              value={nameInput}
-              onChangeText={setNameInput}
-              placeholder="Entrez votre nom"
-              placeholderTextColor="#A3A3A3"
-              autoCapitalize="words"
-            />
-
-            <TouchableOpacity
-              style={[styles.submitButton, isUpdatingProfile && styles.submitButtonDisabled]}
-              onPress={handleSaveProfile}
-              disabled={isUpdatingProfile}
-            >
-              {isUpdatingProfile ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
-                  <Text style={styles.submitButtonText}>Envoyer</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
         </View>
 
-        {/* Current Plan Status */}
-        <View style={styles.planSection}>
-          <Text style={styles.sectionTitle}>Abonnement Actuel</Text>
-          <View style={[styles.planCard, userPlan.isPremium ? styles.premiumPlanCard : styles.freePlanCard]}>
+        {/* Section Plan */}
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>Abonnement</Text>
+          
+          <View style={styles.planCard}>
             <View style={styles.planHeader}>
-              {userPlan.isPremium && <Ionicons name="trophy" size={24} color="#FFD700" />}
-              <Text style={[styles.planName, userPlan.isPremium ? styles.premiumPlanName : styles.freePlanName]}>
-                {userPlan.isPremium ? 'Premium' : 'Gratuit'}
+              <Text style={styles.planTitle}>
+                {userPlan.isPremium ? '✨ Plan Premium' : '🆓 Plan Gratuit'}
               </Text>
+              <View style={[styles.planBadge, userPlan.isPremium && styles.planBadgePremium]}>
+                <Text style={styles.planBadgeText}>
+                  {userPlan.isPremium ? 'PREMIUM' : 'GRATUIT'}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.planModel}>
-              Modèle: {userPlan.displayName}
-            </Text>
+            
             <Text style={styles.planDescription}>
               {userPlan.isPremium 
-                ? 'Générations haute qualité avec le modèle Juggernaut Pro'
-                : 'Générations rapides avec le modèle Flux Schnell'
+                ? 'Accès au modèle IA haute qualité' 
+                : 'Accès au modèle IA standard'
               }
             </Text>
+
+            <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgradeToPremium}>
+              <Text style={styles.upgradeButtonText}>
+                {userPlan.isPremium ? 'Revenir au Gratuit' : 'Passer Premium'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Account Options */}
-        <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>Compte</Text>
-          
-          <SettingItem
-            icon={<Ionicons name="trophy" size={24} color={userPlan.isPremium ? "#FFD700" : "#007AFF"} />}
-            title={userPlan.isPremium ? "Passer en Gratuit" : "Passer Premium"}
-            subtitle={userPlan.isPremium 
-              ? "Revenir au modèle gratuit" 
-              : "Débloquez le modèle IA haute qualité"
-            }
-            onPress={handleUpgradeToPremium}
-            isPremium={!userPlan.isPremium}
-          />
-
-          <SettingItem
-            icon={<Ionicons name="person" size={24} color="#666666" />}
-            title="Paramètres du compte"
-            subtitle="Gérez votre profil et vos préférences"
-          />
-        </View>
-
+        {/* Section Support */}
         <View style={styles.settingsSection}>
           <Text style={styles.sectionTitle}>Support</Text>
           
-          <SettingItem
-            icon={<Ionicons name="help-circle" size={24} color="#666666" />}
-            title="Aide & Support"
-            subtitle="Obtenez de l'aide et contactez le support"
-          />
+          <TouchableOpacity style={styles.settingItem}>
+            <Ionicons name="help-circle-outline" size={24} color="#666666" />
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Aide & Support</Text>
+              <Text style={styles.settingSubtitle}>Obtenez de l'aide</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+          </TouchableOpacity>
 
-          <SettingItem
-            icon={<Ionicons name="information-circle" size={24} color="#666666" />}
-            title="À propos de Genly"
-            subtitle="Version 2.0.0"
-          />
+          <TouchableOpacity style={styles.settingItem}>
+            <Ionicons name="information-circle-outline" size={24} color="#666666" />
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>À propos</Text>
+              <Text style={styles.settingSubtitle}>Version 2.0.0</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+          </TouchableOpacity>
 
-          <SettingItem
-            icon={<Ionicons name="log-out" size={24} color="#FF3B30" />}
-            title="Déconnexion"
-            subtitle={userCredential?.isGuest ? "Quitter le mode invité" : "Se déconnecter du compte"}
-            onPress={handleSignOut}
-          />
+          <TouchableOpacity style={styles.settingItem} onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
+            <View style={styles.settingTextContainer}>
+              <Text style={[styles.settingTitle, styles.signOutText]}>Déconnexion</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
+
+      {/* 🆕 MODAL D'ÉDITION DU PROFIL */}
+      <Modal
+        visible={isEditModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {/* Header Modal */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                <Ionicons name="close" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <View style={{ width: 28 }} />
+            </View>
+
+            {/* Photo de profil */}
+            <View style={styles.modalContent}>
+              <TouchableOpacity 
+                style={styles.modalAvatarContainer} 
+                onPress={handleChangePhoto}
+                disabled={isUpdatingProfile}
+              >
+                {editAvatarUri ? (
+                  <Image source={{ uri: editAvatarUri }} style={styles.modalAvatarImage} />
+                ) : (
+                  <View style={styles.modalDefaultAvatar}>
+                    <Ionicons name="person" size={64} color="#8E8E93" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <Text style={styles.changePhotoText}>Change Photo</Text>
+
+              {/* Username Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Username</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editNameInput}
+                  onChangeText={setEditNameInput}
+                  placeholder="Entrez votre nom"
+                  placeholderTextColor="#8E8E93"
+                  editable={!isUpdatingProfile}
+                />
+              </View>
+
+              {/* Bouton Save */}
+              <TouchableOpacity
+                style={[styles.saveButton, isUpdatingProfile && styles.saveButtonDisabled]}
+                onPress={handleSaveProfile}
+                disabled={isUpdatingProfile}
+              >
+                {isUpdatingProfile ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -351,184 +345,229 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
   },
   profileSection: {
     alignItems: 'center',
-    marginBottom: 30,
-    paddingTop: 20,
+    paddingVertical: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
   },
   avatarContainer: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 40,
-    padding: 20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
     marginBottom: 16,
+    backgroundColor: '#F0F8FF',
     borderWidth: 2,
     borderColor: '#E5F3FF',
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
   },
   avatarImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: '100%',
+    height: '100%',
   },
   defaultAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarBadge: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    padding: 4,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  editButton: {
-    padding: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
-  },
-  profileForm: {
     width: '100%',
-    marginTop: 20,
-    gap: 12,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: '#555555',
-    marginBottom: 4,
-    textAlign: 'left',
-  },
-  input: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#000000',
-    backgroundColor: '#FFFFFF',
-  },
-  submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    height: '100%',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 12,
+    alignItems: 'center',
   },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  displayName: {
+    fontSize: 24,
     fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
   },
-  planSection: {
-    marginBottom: 30,
+  email: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 16,
+  },
+  editProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F0F8FF',
+    gap: 6,
+  },
+  editProfileText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007AFF',
+  },
+  settingsSection: {
+    paddingTop: 24,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#000000',
+    color: '#8E8E93',
     marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   planCard: {
+    backgroundColor: '#F9F9F9',
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-  },
-  freePlanCard: {
-    backgroundColor: '#F8F8F8',
-    borderColor: '#E5E5EA',
-  },
-  premiumPlanCard: {
-    backgroundColor: '#FFF8E1',
-    borderColor: '#FFD700',
+    padding: 20,
+    marginBottom: 24,
   },
   planHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
     marginBottom: 8,
   },
-  planName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  freePlanName: {
+  planTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     color: '#000000',
   },
-  premiumPlanName: {
-    color: '#B8860B',
+  planBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#E5E5EA',
   },
-  planModel: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
+  planBadgePremium: {
+    backgroundColor: '#FFD700',
+  },
+  planBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#000000',
   },
   planDescription: {
     fontSize: 14,
     color: '#666666',
+    marginBottom: 16,
   },
-  settingsSection: {
-    marginBottom: 24,
+  upgradeButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
   },
-  premiumSettingItem: {
-    backgroundColor: '#FFF8E1',
-    borderColor: '#FFD700',
-  },
-  settingIcon: {
-    marginRight: 12,
-  },
-  settingContent: {
+  settingTextContainer: {
     flex: 1,
+    marginLeft: 12,
   },
   settingTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#000000',
     marginBottom: 2,
   },
-  premiumSettingTitle: {
-    color: '#B8860B',
-  },
   settingSubtitle: {
+    fontSize: 13,
+    color: '#8E8E93',
+  },
+  signOutText: {
+    color: '#FF3B30',
+  },
+
+  // 🆕 Styles de la modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    maxWidth: 400,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#3A3A3C',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalContent: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalAvatarContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
+    marginBottom: 12,
+    backgroundColor: '#3A3A3C',
+  },
+  modalAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  modalDefaultAvatar: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  changePhotoText: {
     fontSize: 14,
-    color: '#666666',
+    color: '#007AFF',
+    marginBottom: 24,
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginBottom: 8,
+  },
+  input: {
+    width: '100%',
+    backgroundColor: '#3A3A3C',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#48484A',
+  },
+  saveButton: {
+    width: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
