@@ -20,6 +20,9 @@ import { storageService } from '@/services/storage';
 import ModelSelector, { ModelOption } from '@/components/VideoGenerator/ModelSelector';
 import AdvancedPanel, { VideoStyle } from '@/components/VideoGenerator/AdvancedPanel';
 import VideoPreview from '@/components/VideoGenerator/VideoPreview';
+import ModelBottomSheet from '@/components/VideoGenerator/ModelBottomSheet';
+import { VideoFormat } from '@/components/VideoGenerator/FormatSelector';
+import { Ionicons } from '@expo/vector-icons';
 
 // Generate a valid UUIDv4
 const generateUUIDv4 = (): string => {
@@ -90,7 +93,9 @@ export default function VideoGeneratorScreen() {
   // États principaux
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<ModelOption>(AI_MODELS[0]);
+  const [selectedFormat, setSelectedFormat] = useState<VideoFormat>(AI_MODELS[0].supportedFormats[0]);
   const [advancedVisible, setAdvancedVisible] = useState(false);
+  const [modelSheetVisible, setModelSheetVisible] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<VideoStyle>(VIDEO_STYLES[0]);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
@@ -154,6 +159,36 @@ export default function VideoGeneratorScreen() {
     }
   };
 
+  // Handler pour le changement de modèle
+  const handleModelChange = (model: ModelOption) => {
+    setSelectedModel(model);
+    // Mettre à jour le format avec le premier format supporté par le nouveau modèle
+    if (model.supportedFormats.length > 0) {
+      setSelectedFormat(model.supportedFormats[0]);
+    }
+  };
+
+  // Handler pour "Me faire la surprise"
+  const handleSurpriseMe = () => {
+    const surprisePrompts = [
+      "Un chat qui joue dans un jardin fleuri au coucher du soleil",
+      "Un astronaute dansant sur la lune avec des aurores boréales",
+      "Une forêt magique avec des papillons lumineux volant autour d'arbres géants",
+      "Un robot futuriste préparant du café dans une cuisine cyberpunk",
+      "Des vagues océaniques dorées se transformant en oiseaux lumineux",
+      "Un dragon amical jouant avec des enfants dans un parc médiéval",
+      "Une ville flottante dans les nuages avec des cascades arc-en-ciel",
+      "Un phénix renaissant de ses cendres dans un temple ancien",
+    ];
+
+    const randomPrompt = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
+    setPrompt(randomPrompt);
+
+    Alert.alert('✨ Surprise !', `Voici une idée créative : "${randomPrompt}"`, [
+      { text: 'Super !', style: 'default' }
+    ]);
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       Alert.alert('Prompt requis', 'Veuillez entrer une description pour générer une vidéo.');
@@ -170,7 +205,6 @@ export default function VideoGeneratorScreen() {
     setGeneratedVideo(null);
 
     try {
-      const selectedFormat = selectedModel.supportedFormats[0];
       const videoWidth = selectedFormat.width;
       const videoHeight = selectedFormat.height;
 
@@ -294,9 +328,14 @@ export default function VideoGeneratorScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* En-tête */}
+        {/* En-tête avec bouton PRO */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Créer une vidéo</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Créer une vidéo</Text>
+            <TouchableOpacity style={styles.proButton} activeOpacity={0.8}>
+              <Text style={styles.proButtonText}>PRO</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Champ d'invite */}
@@ -307,19 +346,69 @@ export default function VideoGeneratorScreen() {
             value={prompt}
             onChangeText={setPrompt}
             placeholder="Décrivez votre scène, par ex : un chat qui joue dans un jardin fleuri au coucher du soleil."
-            placeholderTextColor="#666666"
+            placeholderTextColor="#9a9a9a"
             multiline
             numberOfLines={4}
             textAlignVertical="top"
           />
+
+          {/* Bouton "Me faire la surprise" */}
+          <TouchableOpacity
+            style={styles.surpriseButton}
+            onPress={handleSurpriseMe}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.surpriseIcon}>✨</Text>
+            <Text style={styles.surpriseText}>Me faire la surprise</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Sélecteur de modèle */}
+        {/* Sélecteur de modèle avec bouton dropdown */}
         <View style={styles.section}>
-          <ModelSelector
-            selectedModel={selectedModel}
-            models={AI_MODELS}
-            onSelectModel={setSelectedModel}
+          <Text style={styles.sectionLabel}>Modèle d'IA</Text>
+          <TouchableOpacity
+            style={styles.modelDropdownButton}
+            onPress={() => setModelSheetVisible(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.modelDropdownContent}>
+              <View style={styles.modelDropdownLeft}>
+                <Text style={styles.modelDropdownIcon}>🎬</Text>
+                <View>
+                  <Text style={styles.modelDropdownTitle}>Text to Video</Text>
+                  <Text style={styles.modelDropdownSubtitle}>{selectedModel.name}</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9a9a9a" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Bouton Créer */}
+        <TouchableOpacity
+          style={[styles.createButton, isGenerating && styles.createButtonDisabled]}
+          onPress={handleGenerate}
+          disabled={isGenerating}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.createButtonText}>
+            {isGenerating ? 'Génération en cours...' : 'Créer'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Bloc Vidéo Preview */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>
+            Aperçu – {selectedModel.name}
+          </Text>
+          <VideoPreview
+            generatedVideoUrl={generatedVideo?.url || null}
+            previewVideoUrl={undefined}
+            isGenerating={isGenerating}
+            loadingProgress={loadingProgress}
+            selectedModelName={selectedModel.name}
+            onDownload={handleDownload}
+            onShare={handleShare}
           />
         </View>
 
@@ -344,34 +433,21 @@ export default function VideoGeneratorScreen() {
             onImportImage={handleImportImage}
             referenceImagePreview={referenceImagePreview}
             onRemoveImage={handleRemoveReferenceImage}
-          />
-        </View>
-
-        {/* Bouton Créer */}
-        <TouchableOpacity
-          style={[styles.createButton, isGenerating && styles.createButtonDisabled]}
-          onPress={handleGenerate}
-          disabled={isGenerating}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.createButtonText}>
-            {isGenerating ? 'Génération en cours...' : 'Créer'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Bloc Vidéo Preview */}
-        <View style={styles.section}>
-          <VideoPreview
-            generatedVideoUrl={generatedVideo?.url || null}
-            previewVideoUrl={undefined}
-            isGenerating={isGenerating}
-            loadingProgress={loadingProgress}
-            selectedModelName={selectedModel.name}
-            onDownload={handleDownload}
-            onShare={handleShare}
+            formats={selectedModel.supportedFormats}
+            selectedFormat={selectedFormat}
+            onSelectFormat={setSelectedFormat}
           />
         </View>
       </ScrollView>
+
+      {/* Model Bottom Sheet */}
+      <ModelBottomSheet
+        visible={modelSheetVisible}
+        selectedModel={selectedModel}
+        models={AI_MODELS}
+        onSelectModel={handleModelChange}
+        onClose={() => setModelSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -379,7 +455,7 @@ export default function VideoGeneratorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0b',
+    backgroundColor: '#0b0b0d',
   },
   scrollView: {
     flex: 1,
@@ -390,12 +466,28 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    alignItems: 'center',
     marginBottom: 24,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '300',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  proButton: {
+    backgroundColor: '#2d7dff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 18,
+  },
+  proButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
     color: '#ffffff',
     letterSpacing: 0.5,
   },
@@ -411,14 +503,65 @@ const styles = StyleSheet.create({
   },
   promptInput: {
     backgroundColor: '#161618',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 14,
     fontSize: 16,
-    color: '#e0e0e0',
+    color: '#ffffff',
     minHeight: 100,
     textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: 'transparent',
+    marginBottom: 10,
+  },
+  surpriseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#2d2d2f',
+    borderRadius: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  surpriseIcon: {
+    fontSize: 18,
+  },
+  surpriseText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#9a9a9a',
+  },
+  modelDropdownButton: {
+    backgroundColor: '#161618',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  modelDropdownContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modelDropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  modelDropdownIcon: {
+    fontSize: 24,
+  },
+  modelDropdownTitle: {
+    fontSize: 12,
+    color: '#9a9a9a',
+    marginBottom: 2,
+  },
+  modelDropdownSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   advancedButton: {
     alignSelf: 'flex-end',
