@@ -605,7 +605,7 @@ export default function Gallery() {
             onClose={handleCloseModal}
             onDownload={handleDownloadImage}
             onShare={handleShareImage}
-            onDelete={handleDeleteImage}
+            onDelete={handleDeleteRequest}
             onAnimate={handleAnimateImage}
             isDownloading={isDownloading}
             isSharing={isSharing}
