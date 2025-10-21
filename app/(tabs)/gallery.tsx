@@ -39,7 +39,7 @@ const imageHeight = imageWidth * 1.15;
 
 type MediaType = 'photos' | 'videos';
 
-const VideoThumbnail = ({ item, onPress, onDelete }: { item: StoredImage; onPress: (item: StoredImage) => void; onDelete: (item: StoredImage) => void }) => {
+const VideoThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [actualUrl, setActualUrl] = useState<string>(item.url);
 
@@ -110,23 +110,11 @@ const VideoThumbnail = ({ item, onPress, onDelete }: { item: StoredImage; onPres
         </View>
       )}
 
-      <TouchableOpacity
-        style={styles.deleteIconOverlay}
-        onPress={(e) => {
-          e.stopPropagation();
-          onDelete(item);
-        }}
-        activeOpacity={0.7}
-      >
-        <View style={styles.deleteIconBackground}>
-          <Ionicons name="trash" size={18} color="#FFFFFF" />
-        </View>
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
 
-const ImageThumbnail = ({ item, onPress, onDelete }: { item: StoredImage; onPress: (item: StoredImage) => void; onDelete: (item: StoredImage) => void }) => {
+const ImageThumbnail = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(false);
@@ -192,27 +180,15 @@ const ImageThumbnail = ({ item, onPress, onDelete }: { item: StoredImage; onPres
         )
       )}
 
-      <TouchableOpacity
-        style={styles.deleteIconOverlay}
-        onPress={(e) => {
-          e.stopPropagation();
-          onDelete(item);
-        }}
-        activeOpacity={0.7}
-      >
-        <View style={styles.deleteIconBackground}>
-          <Ionicons name="trash" size={18} color="#FFFFFF" />
-        </View>
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
 
-const GalleryItem = ({ item, onPress, onDelete }: { item: StoredImage; onPress: (item: StoredImage) => void; onDelete: (item: StoredImage) => void }) => {
+const GalleryItem = ({ item, onPress }: { item: StoredImage; onPress: (item: StoredImage) => void }) => {
   if (item.isVideo) {
-    return <VideoThumbnail item={item} onPress={onPress} onDelete={onDelete} />;
+    return <VideoThumbnail item={item} onPress={onPress} />;
   }
-  return <ImageThumbnail item={item} onPress={onPress} onDelete={onDelete} />;
+  return <ImageThumbnail item={item} onPress={onPress} />;
 };
 
 export default function Gallery() {
@@ -428,8 +404,8 @@ export default function Gallery() {
   }, [handleCloseModal]);
 
   const renderImageItem = useCallback(({ item }: { item: StoredImage }) => {
-    return <GalleryItem item={item} onPress={handleImagePress} onDelete={handleDeleteRequest} />;
-  }, [handleImagePress, handleDeleteRequest]);
+    return <GalleryItem item={item} onPress={handleImagePress} />;
+  }, [handleImagePress]);
 
   const keyExtractor = useCallback((item: StoredImage) => item.id, []);
 
@@ -1388,20 +1364,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  // Delete icon overlay on thumbnails
-  deleteIconOverlay: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
-  },
-  deleteIconBackground: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 16,
-    padding: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   // Delete confirmation modal
   deleteModalOverlay: {
