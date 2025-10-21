@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Animated as RNAnimated,
   FlatList,
+  TextInput,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -199,9 +200,11 @@ export default function Gallery() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MediaType>('photos');
-  const [username] = useState('username_9221...');
+  const [username, setUsername] = useState('username_9221...');
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<StoredImage | null>(null);
+  const [isProfileEditModalVisible, setIsProfileEditModalVisible] = useState(false);
+  const [editedUsername, setEditedUsername] = useState(username);
 
   const scrollY = useSharedValue(0);
   const glowAnim = useRef(new RNAnimated.Value(0)).current;
@@ -324,6 +327,20 @@ export default function Gallery() {
     setItemToDelete(null);
   }, []);
 
+  const handleOpenProfileEdit = useCallback(() => {
+    setEditedUsername(username);
+    setIsProfileEditModalVisible(true);
+  }, [username]);
+
+  const handleCloseProfileEdit = useCallback(() => {
+    setIsProfileEditModalVisible(false);
+  }, []);
+
+  const handleSaveProfile = useCallback(() => {
+    setUsername(editedUsername);
+    setIsProfileEditModalVisible(false);
+    Alert.alert('Succès', 'Profil mis à jour avec succès!');
+  }, [editedUsername]);
 
   const handleDownloadImage = useCallback(async (image: StoredImage) => {
     setIsDownloading(true);
@@ -497,7 +514,7 @@ export default function Gallery() {
                   </View>
                 </View>
                 <Text style={styles.username}>{username}</Text>
-                <TouchableOpacity style={styles.editButton}>
+                <TouchableOpacity style={styles.editButton} onPress={handleOpenProfileEdit}>
                   <Ionicons name="create" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
@@ -619,6 +636,58 @@ export default function Gallery() {
                   activeOpacity={0.8}
                 >
                   <Text style={styles.deleteModalButtonTextCancel}>Annuler</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal d'édition de profil */}
+        <Modal
+          visible={isProfileEditModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={handleCloseProfileEdit}
+        >
+          <View style={styles.profileEditModalOverlay}>
+            <View style={styles.profileEditModalContainer}>
+              <View style={styles.profileEditHeader}>
+                <Text style={styles.profileEditTitle}>Edit Profile</Text>
+                <TouchableOpacity
+                  style={styles.profileEditCloseButton}
+                  onPress={handleCloseProfileEdit}
+                >
+                  <Ionicons name="close" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.profileEditContent}>
+                <View style={styles.profileEditAvatarSection}>
+                  <View style={styles.profileEditAvatar}>
+                    <Text style={styles.profileEditAvatarText}>U</Text>
+                  </View>
+                  <Text style={styles.profileEditAvatarLabel}>Photo de profil</Text>
+                </View>
+
+                <View style={styles.profileEditInputSection}>
+                  <Text style={styles.profileEditLabel}>Username</Text>
+                  <TextInput
+                    style={styles.profileEditInput}
+                    value={editedUsername}
+                    onChangeText={setEditedUsername}
+                    placeholder="Entrez votre nom d'utilisateur"
+                    placeholderTextColor="#8E8E93"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.profileEditSaveButton}
+                  onPress={handleSaveProfile}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.profileEditSaveButtonText}>Save</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1079,8 +1148,12 @@ const styles = StyleSheet.create({
   editButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -1424,6 +1497,102 @@ const styles = StyleSheet.create({
   },
   deleteModalButtonTextCancel: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Profile edit modal styles
+  profileEditModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  profileEditModalContainer: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  profileEditHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  profileEditTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  profileEditCloseButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileEditContent: {
+    padding: 24,
+  },
+  profileEditAvatarSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  profileEditAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#6C6C70',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  profileEditAvatarText: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  profileEditAvatarLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  profileEditInputSection: {
+    marginBottom: 24,
+  },
+  profileEditLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  profileEditInput: {
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  profileEditSaveButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileEditSaveButtonText: {
+    fontSize: 17,
     fontWeight: '600',
     color: '#FFFFFF',
   },
