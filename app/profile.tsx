@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  TextInput,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { runwareService, UserPlan } from '@/services/runware';
 import { authService, UserCredential } from '@/services/auth';
 
@@ -10,6 +20,9 @@ export default function Profile() {
   const [userPlan, setUserPlan] = useState<UserPlan>(runwareService.getUserPlan());
   const [userCredential, setUserCredential] = useState<UserCredential | null>(null);
   const [displayName, setDisplayName] = useState<string>('Utilisateur');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState<string>('');
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState<boolean>(false);
 
   useEffect(() => {
     loadUserInfo();
@@ -19,10 +32,67 @@ export default function Profile() {
     try {
       const credential = await authService.getUserCredential();
       const name = await authService.getDisplayName();
+      const storedAvatar = await authService.getAvatarUri();
       setUserCredential(credential);
       setDisplayName(name);
+      setAvatarUri(storedAvatar);
+      setNameInput(name);
     } catch (error) {
       console.error('Erreur chargement info utilisateur:', error);
+    }
+  };
+
+  const handleSelectAvatar = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert('Permission requise', 'Veuillez autoriser l\'accès à la galerie pour changer votre photo de profil.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        setAvatarUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Erreur sélection avatar:', error);
+      Alert.alert('Erreur', 'Impossible de sélectionner une photo de profil');
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    const trimmedName = nameInput.trim();
+
+    if (!trimmedName) {
+      Alert.alert('Nom requis', 'Veuillez saisir un nom d\'utilisateur.');
+      return;
+    }
+
+    try {
+      setIsUpdatingProfile(true);
+      const updatedCredential = await authService.updateProfile({
+        displayName: trimmedName,
+        avatarUri: avatarUri ?? null,
+      });
+
+      setDisplayName(trimmedName);
+      setNameInput(trimmedName);
+      setUserCredential(updatedCredential);
+      setAvatarUri(updatedCredential.avatarUri ?? null);
+
+      Alert.alert('Profil mis à jour', 'Vos informations ont bien été enregistrées.');
+    } catch (error) {
+      console.error('Erreur mise à jour profil:', error);
+      Alert.alert('Erreur', 'Impossible de mettre à jour votre profil');
+    } finally {
+      setIsUpdatingProfile(false);
     }
   };
   const handleUpgradeToPremium = () => {
@@ -119,18 +189,33 @@ export default function Profile() {
 
       <View style={styles.content}>
         <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            {userCredential?.isGuest ? (
-              <Ionicons name="person" size={32} color="#666666" />
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={handleSelectAvatar}
+            activeOpacity={0.8}
+          >
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
             ) : (
-              <Ionicons name="person" size={32} color="#007AFF" />
+              <View style={styles.defaultAvatar}>
+                <Ionicons
+                  name="person"
+                  size={32}
+                  color={userCredential?.isGuest ? '#666666' : '#007AFF'}
+                />
+              </View>
             )}
-          </View>
+            <View style={styles.avatarBadge}>
+              <Ionicons name="camera" size={16} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{displayName}</Text>
             <TouchableOpacity
               style={styles.editButton}
-              onPress={() => Alert.alert('Édition', 'Fonctionnalité d\'édition du nom à venir')}
+              onPress={() => {
+                Alert.alert('Astuce', 'Modifiez votre nom ci-dessous puis appuyez sur "Envoyer".');
+              }}
             >
               <Ionicons name="create" size={20} color="#007AFF" />
             </TouchableOpacity>
@@ -138,6 +223,33 @@ export default function Profile() {
           <Text style={styles.subtitle}>
             {userCredential?.isGuest ? 'Mode invité' : 'Compte connecté'}
           </Text>
+
+          <View style={styles.profileForm}>
+            <Text style={styles.inputLabel}>Nom d'utilisateur</Text>
+            <TextInput
+              style={styles.input}
+              value={nameInput}
+              onChangeText={setNameInput}
+              placeholder="Entrez votre nom"
+              placeholderTextColor="#A3A3A3"
+              autoCapitalize="words"
+            />
+
+            <TouchableOpacity
+              style={[styles.submitButton, isUpdatingProfile && styles.submitButtonDisabled]}
+              onPress={handleSaveProfile}
+              disabled={isUpdatingProfile}
+            >
+              {isUpdatingProfile ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
+                  <Text style={styles.submitButtonText}>Envoyer</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Current Plan Status */}
@@ -253,6 +365,30 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: '#E5F3FF',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+  },
+  defaultAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    padding: 4,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -272,6 +408,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
     textAlign: 'center',
+  },
+  profileForm: {
+    width: '100%',
+    marginTop: 20,
+    gap: 12,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#555555',
+    marginBottom: 4,
+    textAlign: 'left',
+  },
+  input: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#D1D1D6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#000000',
+    backgroundColor: '#FFFFFF',
+  },
+  submitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   planSection: {
     marginBottom: 30,
