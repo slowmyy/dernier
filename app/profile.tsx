@@ -17,6 +17,7 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { runwareService, UserPlan } from '@/services/runware';
 import { authService, UserCredential } from '@/services/auth';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Profile() {
   const [userPlan, setUserPlan] = useState<UserPlan>(runwareService.getUserPlan());
@@ -174,16 +175,16 @@ export default function Profile() {
             )}
           </View>
 
-          <Text style={styles.displayName}>{displayName}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.displayName}>{displayName}</Text>
+            <TouchableOpacity style={styles.editIconButton} onPress={handleOpenEditModal}>
+              <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
           {userCredential?.email && (
             <Text style={styles.email}>{userCredential.email}</Text>
           )}
-
-          {/* 🆕 Bouton pour ouvrir la modal d'édition */}
-          <TouchableOpacity style={styles.editProfileButton} onPress={handleOpenEditModal}>
-            <Ionicons name="create-outline" size={20} color="#007AFF" />
-            <Text style={styles.editProfileText}>Modifier le profil</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Section Plan */}
@@ -252,7 +253,7 @@ export default function Profile() {
       <Modal
         visible={isEditModalVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setIsEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -263,7 +264,7 @@ export default function Profile() {
                 <Ionicons name="close" size={28} color="#FFFFFF" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Edit Profile</Text>
-              <View style={{ width: 28 }} />
+              <View style={styles.modalHeaderSpacer} />
             </View>
 
             {/* Photo de profil */}
@@ -282,7 +283,9 @@ export default function Profile() {
                 )}
               </TouchableOpacity>
 
-              <Text style={styles.changePhotoText}>Change Photo</Text>
+              <TouchableOpacity onPress={handleChangePhoto} disabled={isUpdatingProfile} activeOpacity={0.7}>
+                <Text style={styles.changePhotoText}>Change Photo</Text>
+              </TouchableOpacity>
 
               {/* Username Input */}
               <View style={styles.inputContainer}>
@@ -299,15 +302,23 @@ export default function Profile() {
 
               {/* Bouton Save */}
               <TouchableOpacity
-                style={[styles.saveButton, isUpdatingProfile && styles.saveButtonDisabled]}
+                style={[styles.saveButtonWrapper, isUpdatingProfile && styles.saveButtonDisabled]}
                 onPress={handleSaveProfile}
                 disabled={isUpdatingProfile}
+                activeOpacity={0.85}
               >
-                {isUpdatingProfile ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
-                )}
+                <LinearGradient
+                  colors={['#0A84FF', '#0051FF']}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={styles.saveButtonGradient}
+                >
+                  {isUpdatingProfile ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -376,26 +387,25 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 4,
   },
   email: {
     fontSize: 14,
     color: '#8E8E93',
     marginBottom: 16,
   },
-  editProfileButton: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#F0F8FF',
-    gap: 6,
+    marginBottom: 4,
   },
-  editProfileText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
+  editIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1C1C1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
   settingsSection: {
     paddingTop: 24,
@@ -484,32 +494,37 @@ const styles = StyleSheet.create({
   // 🆕 Styles de la modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
     width: '85%',
-    maxWidth: 400,
-    backgroundColor: '#2C2C2E',
-    borderRadius: 20,
+    maxWidth: 380,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 24,
     overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#3A3A3C',
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
+  modalHeaderSpacer: {
+    width: 28,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   modalContent: {
-    padding: 24,
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
     alignItems: 'center',
   },
   modalAvatarContainer: {
@@ -518,7 +533,9 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     overflow: 'hidden',
     marginBottom: 12,
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#2C2C2E',
+    borderWidth: 2,
+    borderColor: '#2F2F31',
   },
   modalAvatarImage: {
     width: '100%',
@@ -532,42 +549,48 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 14,
-    color: '#007AFF',
-    marginBottom: 24,
+    color: '#0A84FF',
+    marginBottom: 28,
+    fontWeight: '600',
   },
   inputContainer: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   inputLabel: {
     fontSize: 13,
     color: '#8E8E93',
-    marginBottom: 8,
+    marginBottom: 10,
+    alignSelf: 'flex-start',
   },
   input: {
     width: '100%',
-    backgroundColor: '#3A3A3C',
-    borderRadius: 10,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
     color: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#48484A',
+    borderColor: '#3A3A3C',
   },
-  saveButton: {
+  saveButtonWrapper: {
     width: '100%',
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  saveButtonGradient: {
+    width: '100%',
+    paddingVertical: 16,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });
