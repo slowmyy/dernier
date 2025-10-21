@@ -1327,8 +1327,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   fullscreenMedia: {
-    width: '100%',
-    height: '100%',
+    width: '90%',
+    height: '80%',
   },
   modalImageLoading: {
     justifyContent: 'center',
