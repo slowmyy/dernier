@@ -254,14 +254,19 @@ export default function Profile() {
         visible={isEditModalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={() => setIsEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             {/* Header Modal */}
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#FFFFFF" />
+              <TouchableOpacity
+                onPress={() => setIsEditModalVisible(false)}
+                style={styles.modalCloseButton}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={20} color="#FFFFFF" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Edit Profile</Text>
               <View style={styles.modalHeaderSpacer} />
@@ -502,7 +507,7 @@ const styles = StyleSheet.create({
     width: '85%',
     maxWidth: 380,
     backgroundColor: '#1C1C1E',
-    borderRadius: 24,
+    borderRadius: 28,
     overflow: 'hidden',
   },
   modalHeader: {
@@ -513,8 +518,16 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 12,
   },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#2C2C2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalHeaderSpacer: {
-    width: 28,
+    width: 36,
   },
   modalTitle: {
     fontSize: 20,
