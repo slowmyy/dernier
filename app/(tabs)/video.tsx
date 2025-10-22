@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   Platform,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -107,6 +108,10 @@ export default function VideoGeneratorScreen() {
   // Service de génération vidéo
   const videoService = useRef<VideoGenerationService | null>(null);
 
+  // Animation pour le bouton Créer
+  const createButtonScale = useRef(new Animated.Value(1)).current;
+  const createButtonGlow = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     videoService.current = new VideoGenerationService();
     checkForPendingReferenceImage();
@@ -200,6 +205,34 @@ export default function VideoGeneratorScreen() {
       Alert.alert('Erreur', 'Service de génération vidéo non initialisé. Vérifiez votre clé API.');
       return;
     }
+
+    // Animation du bouton Créer au clic
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(createButtonScale, {
+          toValue: 1.05,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(createButtonScale, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.timing(createButtonGlow, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: false,
+        }),
+        Animated.timing(createButtonGlow, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: false,
+        }),
+      ]),
+    ]).start();
 
     setIsGenerating(true);
     setLoadingProgress(0);
@@ -360,7 +393,7 @@ export default function VideoGeneratorScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 2️⃣ Champ d'invite avec bouton intégré */}
+        {/* 2️⃣ Champ d'invite avec croix d'effacement */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Invite</Text>
           <View style={styles.promptContainer}>
@@ -375,39 +408,70 @@ export default function VideoGeneratorScreen() {
               textAlignVertical="top"
             />
 
-            {/* Bouton "Me faire la surprise" intégré */}
-            <TouchableOpacity
-              style={styles.surpriseButtonIntegrated}
-              onPress={handleSurpriseMe}
-              activeOpacity={0.6}
-            >
-              <Text style={styles.surpriseIconIntegrated}>✨</Text>
-              <Text style={styles.surpriseTextIntegrated}>Me faire la surprise</Text>
-            </TouchableOpacity>
+            {/* Croix pour effacer le texte */}
+            {prompt.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setPrompt('')}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="close" size={20} color="#ffffff" />
+              </TouchableOpacity>
+            )}
           </View>
+
+          {/* Bouton "Me faire la surprise" centré sous le champ */}
+          <TouchableOpacity
+            style={styles.surpriseButton}
+            onPress={handleSurpriseMe}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="sparkles" size={16} color="#2d7dff" />
+          </TouchableOpacity>
         </View>
 
-        {/* 3️⃣ Bouton Paramètres avancés */}
-        <TouchableOpacity
-          style={styles.advancedButton}
-          onPress={() => setAdvancedSheetVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.advancedButtonText}>
-            Afficher les paramètres avancés
-          </Text>
-        </TouchableOpacity>
+        {/* 3️⃣ Ligne Paramètres avancés avec bordure */}
+        <View style={styles.advancedContainer}>
+          <TouchableOpacity
+            style={styles.advancedButton}
+            onPress={() => setAdvancedSheetVisible(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.advancedButtonContent}>
+              <Text style={styles.advancedButtonIcon}>⚙️</Text>
+              <Text style={styles.advancedButtonText}>Paramètres avancés</Text>
+            </View>
+            <Ionicons name="chevron-up" size={18} color="#9a9a9a" />
+          </TouchableOpacity>
+        </View>
 
-        {/* 4️⃣ Bouton Créer */}
+        {/* 4️⃣ Bouton Créer avec animation */}
         <TouchableOpacity
-          style={[styles.createButton, isGenerating && styles.createButtonDisabled]}
           onPress={handleGenerate}
           disabled={isGenerating}
           activeOpacity={0.8}
         >
-          <Text style={styles.createButtonText}>
-            {isGenerating ? 'Génération en cours...' : 'Créer'}
-          </Text>
+          <Animated.View
+            style={[
+              styles.createButton,
+              isGenerating && styles.createButtonDisabled,
+              {
+                transform: [{ scale: createButtonScale }],
+                shadowOpacity: createButtonGlow.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.3, 0.6],
+                }),
+                shadowRadius: createButtonGlow.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [8, 16],
+                }),
+              },
+            ]}
+          >
+            <Text style={styles.createButtonText}>
+              {isGenerating ? 'Génération en cours...' : 'Créer'}
+            </Text>
+          </Animated.View>
         </TouchableOpacity>
 
         {/* 5️⃣ Bloc Aperçu - Bande-annonce du modèle + 6️⃣ Votre vidéo */}
@@ -523,29 +587,29 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     minHeight: 140,
     textAlignVertical: 'top',
-    paddingBottom: 60,
   },
-  surpriseButtonIntegrated: {
+  clearButton: {
     position: 'absolute',
-    bottom: 12,
+    top: 12,
     right: 12,
-    flexDirection: 'row',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'transparent',
+  },
+  surpriseButton: {
+    alignSelf: 'center',
+    marginTop: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: '#2d7dff',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  surpriseIconIntegrated: {
-    fontSize: 16,
-  },
-  surpriseTextIntegrated: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#ffffff',
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modelDropdownButton: {
     backgroundColor: '#161618',
@@ -578,18 +642,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
   },
-  advancedButton: {
-    alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+  advancedContainer: {
+    marginTop: 8,
     marginBottom: 16,
-    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#2a2a2c',
+    paddingTop: 12,
+  },
+  advancedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    gap: 12,
+  },
+  advancedButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  advancedButtonIcon: {
+    fontSize: 16,
   },
   advancedButtonText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#2d7dff',
-    textAlign: 'center',
+    color: '#ffffff',
   },
   createButton: {
     backgroundColor: '#2d7dff',
