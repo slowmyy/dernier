@@ -49,28 +49,30 @@ export default function AdvancedPanel({
 
   useEffect(() => {
     if (visible) {
+      // Animation d'ouverture fluide et rapide (~220ms)
       Animated.parallel([
         Animated.timing(animatedHeight, {
           toValue: 1,
-          duration: 300,
+          duration: 220,
           useNativeDriver: false,
         }),
         Animated.timing(animatedOpacity, {
           toValue: 1,
-          duration: 250,
+          duration: 220,
           useNativeDriver: true,
         }),
       ]).start();
     } else {
+      // Animation de fermeture fluide et rapide (~220ms)
       Animated.parallel([
         Animated.timing(animatedHeight, {
           toValue: 0,
-          duration: 250,
+          duration: 220,
           useNativeDriver: false,
         }),
         Animated.timing(animatedOpacity, {
           toValue: 0,
-          duration: 200,
+          duration: 220,
           useNativeDriver: true,
         }),
       ]).start();

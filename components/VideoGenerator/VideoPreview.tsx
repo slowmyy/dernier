@@ -83,14 +83,6 @@ export default function VideoPreview({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.previewLabel}>
-        {isGenerating
-          ? 'Génération en cours...'
-          : generatedVideoUrl
-          ? 'Votre vidéo'
-          : `Aperçu - ${selectedModelName}`}
-      </Text>
-
       <View style={styles.videoContainer}>
         {isGenerating ? (
           <View style={styles.loadingContainer}>
@@ -167,13 +159,7 @@ export default function VideoPreview({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
-  },
-  previewLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 12,
+    marginTop: 0,
   },
   videoContainer: {
     aspectRatio: 9 / 16,
