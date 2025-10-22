@@ -338,7 +338,28 @@ export default function VideoGeneratorScreen() {
           </View>
         </View>
 
-        {/* Champ d'invite */}
+        {/* 1️⃣ Sélecteur de modèle d'IA - Déplacé en haut */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Modèle d'IA</Text>
+          <TouchableOpacity
+            style={styles.modelDropdownButton}
+            onPress={() => setModelSheetVisible(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.modelDropdownContent}>
+              <View style={styles.modelDropdownLeft}>
+                <Text style={styles.modelDropdownIcon}>🎬</Text>
+                <View>
+                  <Text style={styles.modelDropdownTitle}>Text to Video</Text>
+                  <Text style={styles.modelDropdownSubtitle}>{selectedModel.name}</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9a9a9a" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* 2️⃣ Champ d'invite + Me faire la surprise */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Invite</Text>
           <TextInput
@@ -363,56 +384,7 @@ export default function VideoGeneratorScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Sélecteur de modèle avec bouton dropdown */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Modèle d'IA</Text>
-          <TouchableOpacity
-            style={styles.modelDropdownButton}
-            onPress={() => setModelSheetVisible(true)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.modelDropdownContent}>
-              <View style={styles.modelDropdownLeft}>
-                <Text style={styles.modelDropdownIcon}>🎬</Text>
-                <View>
-                  <Text style={styles.modelDropdownTitle}>Text to Video</Text>
-                  <Text style={styles.modelDropdownSubtitle}>{selectedModel.name}</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#9a9a9a" />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Bouton Créer */}
-        <TouchableOpacity
-          style={[styles.createButton, isGenerating && styles.createButtonDisabled]}
-          onPress={handleGenerate}
-          disabled={isGenerating}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.createButtonText}>
-            {isGenerating ? 'Génération en cours...' : 'Créer'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Bloc Vidéo Preview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>
-            Aperçu – {selectedModel.name}
-          </Text>
-          <VideoPreview
-            generatedVideoUrl={generatedVideo?.url || null}
-            previewVideoUrl={undefined}
-            isGenerating={isGenerating}
-            loadingProgress={loadingProgress}
-            selectedModelName={selectedModel.name}
-            onDownload={handleDownload}
-            onShare={handleShare}
-          />
-        </View>
-
-        {/* Bouton Paramètres avancés */}
+        {/* 3️⃣ Paramètres avancés - Déplacés après l'invite */}
         <TouchableOpacity
           style={styles.advancedButton}
           onPress={() => setAdvancedVisible(!advancedVisible)}
@@ -423,7 +395,6 @@ export default function VideoGeneratorScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Panneau Paramètres avancés */}
         <View style={styles.section}>
           <AdvancedPanel
             visible={advancedVisible}
@@ -436,6 +407,38 @@ export default function VideoGeneratorScreen() {
             formats={selectedModel.supportedFormats}
             selectedFormat={selectedFormat}
             onSelectFormat={setSelectedFormat}
+          />
+        </View>
+
+        {/* 4️⃣ Bouton Créer */}
+        <TouchableOpacity
+          style={[styles.createButton, isGenerating && styles.createButtonDisabled]}
+          onPress={handleGenerate}
+          disabled={isGenerating}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.createButtonText}>
+            {isGenerating ? 'Génération en cours...' : 'Créer'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* 5️⃣ Bloc Aperçu - Bande-annonce du modèle + 6️⃣ Votre vidéo */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>
+            {isGenerating
+              ? 'Génération en cours...'
+              : generatedVideo
+              ? 'Votre vidéo'
+              : `Aperçu – ${selectedModel.name}`}
+          </Text>
+          <VideoPreview
+            generatedVideoUrl={generatedVideo?.url || null}
+            previewVideoUrl={undefined}
+            isGenerating={isGenerating}
+            loadingProgress={loadingProgress}
+            selectedModelName={selectedModel.name}
+            onDownload={handleDownload}
+            onShare={handleShare}
           />
         </View>
       </ScrollView>
