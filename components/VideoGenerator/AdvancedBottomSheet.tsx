@@ -77,22 +77,6 @@ export default function AdvancedBottomSheet({
     }
   }, [visible]);
 
-  // Raccourcir les noms pour l'affichage
-  const getStyleInitial = (style: VideoStyle): string => {
-    switch (style.id) {
-      case 'realistic':
-        return 'R';
-      case 'cinematic':
-        return 'C';
-      case 'anime':
-        return 'A';
-      case 'satisfying':
-        return 'S';
-      default:
-        return style.name.charAt(0);
-    }
-  };
-
   return (
     <Modal
       visible={visible}
@@ -132,7 +116,7 @@ export default function AdvancedBottomSheet({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1️⃣ Style de vidéo */}
+          {/* 1️⃣ Style de vidéo - Rectangles arrondis */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Style de vidéo</Text>
             <View style={styles.stylesContainer}>
@@ -148,17 +132,6 @@ export default function AdvancedBottomSheet({
                     onPress={() => onSelectStyle(style)}
                     activeOpacity={0.7}
                   >
-                    <View style={[
-                      styles.styleCircle,
-                      isSelected && styles.selectedStyleCircle,
-                    ]}>
-                      <Text style={[
-                        styles.styleInitial,
-                        isSelected && styles.selectedStyleInitial,
-                      ]}>
-                        {getStyleInitial(style)}
-                      </Text>
-                    </View>
                     <Text style={[
                       styles.styleName,
                       isSelected && styles.selectedStyleName,
@@ -171,7 +144,39 @@ export default function AdvancedBottomSheet({
             </View>
           </View>
 
-          {/* 2️⃣ Format vidéo */}
+          {/* 2️⃣ Image de référence */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Import d'image</Text>
+            {referenceImagePreview ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image
+                  source={{ uri: referenceImagePreview }}
+                  style={styles.imagePreview}
+                />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={onRemoveImage}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="close-circle" size={28} color="#ff4444" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={onImportImage}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add-outline" size={32} color="#9a9a9a" />
+                <Ionicons name="image-outline" size={32} color="#9a9a9a" style={styles.imageIcon} />
+                <Text style={styles.uploadText}>
+                  Appuyez ici pour uploader la photo à laquelle vous voulez donner vie !
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* 3️⃣ Format vidéo */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Format vidéo</Text>
             <View style={styles.formatsContainer}>
@@ -201,37 +206,6 @@ export default function AdvancedBottomSheet({
                 );
               })}
             </View>
-          </View>
-
-          {/* 3️⃣ Image de référence */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Image de référence (optionnelle)</Text>
-            {referenceImagePreview ? (
-              <View style={styles.imagePreviewContainer}>
-                <Image
-                  source={{ uri: referenceImagePreview }}
-                  style={styles.imagePreview}
-                />
-                <TouchableOpacity
-                  style={styles.removeImageButton}
-                  onPress={onRemoveImage}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="close-circle" size={28} color="#ff4444" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.uploadButton}
-                onPress={onImportImage}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="image-outline" size={40} color="#2d7dff" />
-                <Text style={styles.uploadText}>
-                  Appuyez ici pour uploader la photo à laquelle vous voulez donner vie !
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
         </ScrollView>
 
@@ -299,46 +273,36 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
 
-  // Style de vidéo
+  // Style de vidéo - Rectangles arrondis
   stylesContainer: {
     flexDirection: 'row',
-    gap: 16,
-    justifyContent: 'center',
+    gap: 12,
+    justifyContent: 'space-between',
   },
   styleButton: {
-    alignItems: 'center',
-    gap: 10,
-  },
-  styleCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    flex: 1,
     backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#2a2a2c',
-    justifyContent: 'center',
-    alignItems: 'center',
+    minHeight: 50,
   },
-  selectedStyleCircle: {
+  selectedStyleButton: {
     borderColor: '#2d7dff',
     backgroundColor: 'rgba(45, 125, 255, 0.15)',
   },
-  styleInitial: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#9a9a9a',
-  },
-  selectedStyleInitial: {
-    color: '#2d7dff',
-  },
   styleName: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#9a9a9a',
   },
   selectedStyleName: {
     color: '#2d7dff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
 
   // Format vidéo
@@ -378,21 +342,23 @@ const styles = StyleSheet.create({
     color: '#9a9a9a',
   },
 
-  // Image de référence
+  // Image de référence - Fond sombre, icône grise
   uploadButton: {
-    borderWidth: 2,
-    borderColor: '#2d7dff',
-    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: '#2a2a2c',
     borderRadius: 16,
-    padding: 28,
+    padding: 32,
     alignItems: 'center',
-    backgroundColor: 'rgba(45, 125, 255, 0.05)',
-    gap: 14,
+    backgroundColor: '#0b0b0d',
+    gap: 12,
+  },
+  imageIcon: {
+    marginTop: -40,
   },
   uploadText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#ffffff',
+    color: '#e0e0e0',
     textAlign: 'center',
     lineHeight: 22,
   },

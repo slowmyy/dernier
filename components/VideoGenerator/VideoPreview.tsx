@@ -152,7 +152,7 @@ export default function VideoPreview({
               onPress={onDownload}
               activeOpacity={0.7}
             >
-              <Ionicons name="download-outline" size={20} color="#2d7dff" />
+              <Ionicons name="download-outline" size={20} color="#ffffff" />
               <Text style={styles.actionButtonText}>Télécharger</Text>
             </TouchableOpacity>
           )}
@@ -162,7 +162,7 @@ export default function VideoPreview({
               onPress={onShare}
               activeOpacity={0.7}
             >
-              <Ionicons name="share-outline" size={20} color="#2d7dff" />
+              <Ionicons name="share-outline" size={20} color="#ffffff" />
               <Text style={styles.actionButtonText}>Partager</Text>
             </TouchableOpacity>
           )}
@@ -255,13 +255,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderRadius: 16,
-    paddingVertical: 15,
-    paddingHorizontal: 16,
+    backgroundColor: '#2d7dff',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     gap: 8,
-    borderWidth: 1.5,
-    borderColor: '#2d7dff',
   },
   actionButtonText: {
     fontSize: 15,
