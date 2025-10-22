@@ -167,8 +167,12 @@ export default function AdvancedBottomSheet({
                 onPress={onImportImage}
                 activeOpacity={0.7}
               >
-                <Ionicons name="add-outline" size={32} color="#9a9a9a" />
-                <Ionicons name="image-outline" size={32} color="#9a9a9a" style={styles.imageIcon} />
+                <View style={styles.uploadIconContainer}>
+                  <Ionicons name="image-outline" size={48} color="#6a6a6a" />
+                  <View style={styles.uploadPlusIcon}>
+                    <Ionicons name="add" size={20} color="#ffffff" />
+                  </View>
+                </View>
                 <Text style={styles.uploadText}>
                   Appuyez ici pour uploader la photo à laquelle vous voulez donner vie !
                 </Text>
@@ -182,6 +186,10 @@ export default function AdvancedBottomSheet({
             <View style={styles.formatsContainer}>
               {formats.map((format) => {
                 const isSelected = selectedFormat.id === format.id;
+                // Choisir l'icône selon le format
+                const formatIcon = format.id === 'square' ? 'square-outline' :
+                                 format.id === 'portrait' ? 'phone-portrait-outline' :
+                                 'desktop-outline';
                 return (
                   <TouchableOpacity
                     key={format.id}
@@ -192,7 +200,11 @@ export default function AdvancedBottomSheet({
                     onPress={() => onSelectFormat(format)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.formatEmoji}>{format.emoji}</Text>
+                    <Ionicons
+                      name={formatIcon}
+                      size={22}
+                      color={isSelected ? '#2d7dff' : '#9a9a9a'}
+                    />
                     <Text style={[
                       styles.formatName,
                       isSelected && styles.selectedFormatName,
@@ -235,8 +247,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#161618',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: 18,
+    paddingBottom: 32,
     maxHeight: SCREEN_HEIGHT * 0.8,
   },
   handleContainer: {
@@ -250,53 +262,53 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#ffffff',
-    marginBottom: 20,
+    marginBottom: 16,
     textAlign: 'center',
   },
   scrollView: {
     maxHeight: SCREEN_HEIGHT * 0.55,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   section: {
-    marginBottom: 28,
+    marginBottom: 20,
   },
   sectionLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#ffffff',
-    marginBottom: 14,
+    marginBottom: 12,
     opacity: 0.9,
   },
 
-  // Style de vidéo - Rectangles arrondis
+  // Style de vidéo - Rectangles arrondis, taille réduite de 20%
   stylesContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     justifyContent: 'space-between',
   },
   styleButton: {
     flex: 1,
     backgroundColor: '#1c1c1e',
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#2a2a2c',
-    minHeight: 50,
+    minHeight: 40,
   },
   selectedStyleButton: {
     borderColor: '#2d7dff',
     backgroundColor: 'rgba(45, 125, 255, 0.15)',
   },
   styleName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#9a9a9a',
   },
@@ -305,32 +317,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Format vidéo
+  // Format vidéo - Taille réduite de 25%, icônes professionnelles
   formatsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
     justifyContent: 'center',
   },
   formatButton: {
     flex: 1,
     backgroundColor: '#1c1c1e',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    gap: 6,
+    gap: 5,
   },
   selectedFormatButton: {
     borderColor: '#2d7dff',
     backgroundColor: 'rgba(45, 125, 255, 0.1)',
   },
-  formatEmoji: {
-    fontSize: 28,
-    marginBottom: 4,
-  },
   formatName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#ffffff',
   },
@@ -338,22 +346,35 @@ const styles = StyleSheet.create({
     color: '#2d7dff',
   },
   formatDimensions: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#9a9a9a',
   },
 
-  // Image de référence - Fond sombre, icône grise
+  // Image de référence - Fond noir, icône grise avec "+" en haut à droite
   uploadButton: {
     borderWidth: 1.5,
     borderColor: '#2a2a2c',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
-    backgroundColor: '#0b0b0d',
-    gap: 12,
+    backgroundColor: '#0D0D0D',
+    gap: 16,
   },
-  imageIcon: {
-    marginTop: -40,
+  uploadIconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadPlusIcon: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#2d7dff',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   uploadText: {
     fontSize: 15,
@@ -381,18 +402,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
 
-  // Apply button
+  // Apply button - Noir avec texte blanc, sans lueur bleue
   applyButton: {
-    backgroundColor: '#2d7dff',
-    borderRadius: 16,
+    backgroundColor: '#0D0D0D',
+    borderRadius: 22,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 20,
-    shadowColor: '#2d7dff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   applyButtonText: {
     fontSize: 18,
