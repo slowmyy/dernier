@@ -17,6 +17,8 @@ interface VideoPreviewProps {
   isGenerating: boolean;
   loadingProgress: number;
   selectedModelName: string;
+  videoWidth?: number;
+  videoHeight?: number;
   onDownload?: () => void;
   onShare?: () => void;
 }
@@ -27,11 +29,24 @@ export default function VideoPreview({
   isGenerating,
   loadingProgress,
   selectedModelName,
+  videoWidth,
+  videoHeight,
   onDownload,
   onShare,
 }: VideoPreviewProps) {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+
+  // Calculer le ratio selon le format sélectionné
+  const getAspectRatio = (): number => {
+    if (videoWidth && videoHeight) {
+      return videoWidth / videoHeight;
+    }
+    // Valeur par défaut (portrait 9:16)
+    return 9 / 16;
+  };
+
+  const aspectRatio = getAspectRatio();
 
   const handleVideoLoad = () => {
     setVideoLoaded(true);
@@ -83,7 +98,7 @@ export default function VideoPreview({
 
   return (
     <View style={styles.container}>
-      <View style={styles.videoContainer}>
+      <View style={[styles.videoContainer, { aspectRatio }]}>
         {isGenerating ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#2d7dff" />
@@ -162,11 +177,11 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   videoContainer: {
-    aspectRatio: 9 / 16,
     borderRadius: 18,
     backgroundColor: '#161618',
     overflow: 'hidden',
     position: 'relative',
+    width: '100%',
   },
   video: {
     width: '100%',
@@ -240,16 +255,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#161618',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#2a2a2c',
+    borderWidth: 1.5,
+    borderColor: '#2d7dff',
   },
   actionButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#2d7dff',
+    color: '#ffffff',
   },
 });
