@@ -206,7 +206,7 @@ export default function VideoGeneratorScreen() {
       return;
     }
 
-    // Animation du bouton Créer au clic
+    // Animation du bouton Créer au clic - amélioration avec glow fluide
     Animated.parallel([
       Animated.sequence([
         Animated.timing(createButtonScale, {
@@ -408,26 +408,26 @@ export default function VideoGeneratorScreen() {
               textAlignVertical="top"
             />
 
-            {/* Croix pour effacer le texte */}
+            {/* Croix pour effacer le texte - petite, fine, discrète */}
             {prompt.length > 0 && (
               <TouchableOpacity
                 style={styles.clearButton}
                 onPress={() => setPrompt('')}
                 activeOpacity={0.6}
               >
-                <Ionicons name="close" size={20} color="#ffffff" />
+                <Ionicons name="close" size={14} color="#ffffff" />
               </TouchableOpacity>
             )}
-          </View>
 
-          {/* Bouton "Me faire la surprise" centré sous le champ */}
-          <TouchableOpacity
-            style={styles.surpriseButton}
-            onPress={handleSurpriseMe}
-            activeOpacity={0.6}
-          >
-            <Ionicons name="sparkles" size={16} color="#2d7dff" />
-          </TouchableOpacity>
+            {/* Bouton "Me faire la surprise" à l'intérieur du champ, en bas à droite */}
+            <TouchableOpacity
+              style={styles.surpriseButton}
+              onPress={handleSurpriseMe}
+              activeOpacity={0.6}
+            >
+              <Ionicons name="sparkles" size={14} color="#9a9a9a" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 3️⃣ Ligne Paramètres avancés avec bordure */}
@@ -437,10 +437,8 @@ export default function VideoGeneratorScreen() {
             onPress={() => setAdvancedSheetVisible(true)}
             activeOpacity={0.7}
           >
-            <View style={styles.advancedButtonContent}>
-              <Text style={styles.advancedButtonIcon}>⚙️</Text>
-              <Text style={styles.advancedButtonText}>Paramètres avancés</Text>
-            </View>
+            <Text style={styles.advancedButtonIcon}>⚙️</Text>
+            <Text style={styles.advancedButtonText}>Paramètres avancés</Text>
             <Ionicons name="chevron-up" size={18} color="#9a9a9a" />
           </TouchableOpacity>
         </View>
@@ -459,11 +457,11 @@ export default function VideoGeneratorScreen() {
                 transform: [{ scale: createButtonScale }],
                 shadowOpacity: createButtonGlow.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0.3, 0.6],
+                  outputRange: [0.3, 0.4],
                 }),
                 shadowRadius: createButtonGlow.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [8, 16],
+                  outputRange: [8, 20],
                 }),
               },
             ]}
@@ -533,12 +531,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 32,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 18,
   },
   headerContent: {
     flexDirection: 'row',
@@ -564,13 +562,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   section: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#ffffff',
-    marginBottom: 10,
+    marginBottom: 8,
     opacity: 0.9,
   },
   promptContainer: {
@@ -579,34 +577,34 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'transparent',
-    minHeight: 140,
+    minHeight: 350,
   },
   promptInput: {
-    padding: 16,
+    padding: 19,
+    paddingBottom: 48,
     fontSize: 16,
     color: '#ffffff',
-    minHeight: 140,
+    minHeight: 350,
     textAlignVertical: 'top',
   },
   clearButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: 16,
+    right: 16,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(140, 140, 140, 0.25)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   surpriseButton: {
-    alignSelf: 'center',
-    marginTop: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#2d7dff',
+    position: 'absolute',
+    bottom: 12,
+    right: 16,
+    width: 25,
+    height: 25,
+    borderRadius: 12,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
@@ -643,23 +641,18 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   advancedContainer: {
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: 6,
+    marginBottom: 12,
     borderTopWidth: 1,
     borderTopColor: '#2a2a2c',
-    paddingTop: 12,
+    paddingTop: 10,
   },
   advancedButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 8,
-    gap: 12,
-  },
-  advancedButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 12,
   },
   advancedButtonIcon: {
     fontSize: 16,
@@ -668,13 +661,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#ffffff',
+    flex: 1,
+    textAlign: 'center',
+    marginLeft: -18,
   },
   createButton: {
     backgroundColor: '#2d7dff',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 22,
+    paddingVertical: 15,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: '#2d7dff',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
