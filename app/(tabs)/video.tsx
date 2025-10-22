@@ -18,9 +18,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VideoGenerationService } from '@/utils/runware';
 import { storageService } from '@/services/storage';
 import ModelSelector, { ModelOption } from '@/components/VideoGenerator/ModelSelector';
-import AdvancedPanel, { VideoStyle } from '@/components/VideoGenerator/AdvancedPanel';
+import { VideoStyle } from '@/components/VideoGenerator/AdvancedPanel';
 import VideoPreview from '@/components/VideoGenerator/VideoPreview';
 import ModelBottomSheet from '@/components/VideoGenerator/ModelBottomSheet';
+import AdvancedBottomSheet from '@/components/VideoGenerator/AdvancedBottomSheet';
 import { VideoFormat } from '@/components/VideoGenerator/FormatSelector';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -94,7 +95,7 @@ export default function VideoGeneratorScreen() {
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<ModelOption>(AI_MODELS[0]);
   const [selectedFormat, setSelectedFormat] = useState<VideoFormat>(AI_MODELS[0].supportedFormats[0]);
-  const [advancedVisible, setAdvancedVisible] = useState(false);
+  const [advancedSheetVisible, setAdvancedSheetVisible] = useState(false);
   const [modelSheetVisible, setModelSheetVisible] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<VideoStyle>(VIDEO_STYLES[0]);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
@@ -359,56 +360,43 @@ export default function VideoGeneratorScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 2️⃣ Champ d'invite + Me faire la surprise */}
+        {/* 2️⃣ Champ d'invite avec bouton intégré */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Invite</Text>
-          <TextInput
-            style={styles.promptInput}
-            value={prompt}
-            onChangeText={setPrompt}
-            placeholder="Décrivez votre scène, par ex : un chat qui joue dans un jardin fleuri au coucher du soleil."
-            placeholderTextColor="#9a9a9a"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
+          <View style={styles.promptContainer}>
+            <TextInput
+              style={styles.promptInput}
+              value={prompt}
+              onChangeText={setPrompt}
+              placeholder="Décrivez votre scène, par ex : un chat qui joue dans un jardin fleuri au coucher du soleil."
+              placeholderTextColor="#9a9a9a"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
 
-          {/* Bouton "Me faire la surprise" */}
-          <TouchableOpacity
-            style={styles.surpriseButton}
-            onPress={handleSurpriseMe}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.surpriseIcon}>✨</Text>
-            <Text style={styles.surpriseText}>Me faire la surprise</Text>
-          </TouchableOpacity>
+            {/* Bouton "Me faire la surprise" intégré */}
+            <TouchableOpacity
+              style={styles.surpriseButtonIntegrated}
+              onPress={handleSurpriseMe}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.surpriseIconIntegrated}>✨</Text>
+              <Text style={styles.surpriseTextIntegrated}>Me faire la surprise</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* 3️⃣ Paramètres avancés - Déplacés après l'invite */}
+        {/* 3️⃣ Bouton Paramètres avancés */}
         <TouchableOpacity
           style={styles.advancedButton}
-          onPress={() => setAdvancedVisible(!advancedVisible)}
+          onPress={() => setAdvancedSheetVisible(true)}
           activeOpacity={0.7}
         >
           <Text style={styles.advancedButtonText}>
-            {advancedVisible ? 'Masquer' : 'Afficher'} les paramètres avancés
+            Afficher les paramètres avancés
           </Text>
         </TouchableOpacity>
-
-        <View style={styles.section}>
-          <AdvancedPanel
-            visible={advancedVisible}
-            selectedStyle={selectedStyle}
-            videoStyles={VIDEO_STYLES}
-            onSelectStyle={setSelectedStyle}
-            onImportImage={handleImportImage}
-            referenceImagePreview={referenceImagePreview}
-            onRemoveImage={handleRemoveReferenceImage}
-            formats={selectedModel.supportedFormats}
-            selectedFormat={selectedFormat}
-            onSelectFormat={setSelectedFormat}
-          />
-        </View>
 
         {/* 4️⃣ Bouton Créer */}
         <TouchableOpacity
@@ -437,6 +425,8 @@ export default function VideoGeneratorScreen() {
             isGenerating={isGenerating}
             loadingProgress={loadingProgress}
             selectedModelName={selectedModel.name}
+            videoWidth={selectedFormat.width}
+            videoHeight={selectedFormat.height}
             onDownload={handleDownload}
             onShare={handleShare}
           />
@@ -450,6 +440,21 @@ export default function VideoGeneratorScreen() {
         models={AI_MODELS}
         onSelectModel={handleModelChange}
         onClose={() => setModelSheetVisible(false)}
+      />
+
+      {/* Advanced Parameters Bottom Sheet */}
+      <AdvancedBottomSheet
+        visible={advancedSheetVisible}
+        selectedStyle={selectedStyle}
+        videoStyles={VIDEO_STYLES}
+        onSelectStyle={setSelectedStyle}
+        formats={selectedModel.supportedFormats}
+        selectedFormat={selectedFormat}
+        onSelectFormat={setSelectedFormat}
+        onImportImage={handleImportImage}
+        referenceImagePreview={referenceImagePreview}
+        onRemoveImage={handleRemoveReferenceImage}
+        onClose={() => setAdvancedSheetVisible(false)}
       />
     </SafeAreaView>
   );
@@ -477,10 +482,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '300',
+    fontSize: 32,
+    fontWeight: '700',
     color: '#ffffff',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   proButton: {
     backgroundColor: '#2d7dff',
@@ -504,36 +509,43 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     opacity: 0.9,
   },
-  promptInput: {
+  promptContainer: {
+    position: 'relative',
     backgroundColor: '#161618',
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 16,
-    color: '#ffffff',
-    minHeight: 100,
-    textAlignVertical: 'top',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'transparent',
-    marginBottom: 10,
+    minHeight: 140,
   },
-  surpriseButton: {
+  promptInput: {
+    padding: 16,
+    fontSize: 16,
+    color: '#ffffff',
+    minHeight: 140,
+    textAlignVertical: 'top',
+    paddingBottom: 60,
+  },
+  surpriseButtonIntegrated: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: '#2d2d2f',
-    borderRadius: 16,
-    paddingVertical: 12,
-    gap: 8,
+    borderColor: '#2d7dff',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  surpriseIcon: {
-    fontSize: 18,
+  surpriseIconIntegrated: {
+    fontSize: 16,
   },
-  surpriseText: {
-    fontSize: 15,
+  surpriseTextIntegrated: {
+    fontSize: 13,
     fontWeight: '500',
-    color: '#9a9a9a',
+    color: '#ffffff',
   },
   modelDropdownButton: {
     backgroundColor: '#161618',
@@ -567,15 +579,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   advancedButton: {
-    alignSelf: 'flex-end',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    marginBottom: 10,
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+    marginTop: 4,
   },
   advancedButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
     color: '#2d7dff',
+    textAlign: 'center',
   },
   createButton: {
     backgroundColor: '#2d7dff',
