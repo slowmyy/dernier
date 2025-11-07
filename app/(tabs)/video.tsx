@@ -24,6 +24,9 @@ import VideoPreview from '@/components/VideoGenerator/VideoPreview';
 import { VideoFormat } from '@/components/VideoGenerator/FormatSelector';
 import { MaterialIcons } from '@expo/vector-icons';
 
+// Import de la version web
+import VideoGeneratorWeb from '@/components/VideoGenerator/VideoGeneratorWeb';
+
 // Generate a valid UUIDv4
 const generateUUIDv4 = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -115,6 +118,11 @@ interface GeneratedVideo {
 }
 
 export default function VideoGeneratorScreen() {
+  // Si on est sur le web, utiliser la version web pure
+  if (Platform.OS === 'web') {
+    return <VideoGeneratorWeb />;
+  }
+
   // États principaux
   const [prompt, setPrompt] = useState('Un astronaute surfant sur une vague cosmique...');
   const [selectedModel, setSelectedModel] = useState<ModelOption>(AI_MODELS[0]);
