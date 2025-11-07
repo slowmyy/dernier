@@ -40,6 +40,12 @@
       "eas": {
         "projectId": "your-project-id"
       }
-    }
+    },
+    "packagerOpts": {
+      "config": "metro.config.js"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }

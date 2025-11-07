@@ -1,4 +1,4 @@
-// app/(tabs)/video.tsx - Nouveau design noir moderne
+// app/(tabs)/video.tsx - Nouveau design avec NativeWind/Tailwind
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -6,11 +6,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
   Alert,
   Platform,
   Animated,
+  Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,13 +19,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VideoGenerationService } from '@/utils/runware';
 import { storageService } from '@/services/storage';
-import ModelSelector, { ModelOption } from '@/components/VideoGenerator/ModelSelector';
 import { VideoStyle } from '@/components/VideoGenerator/AdvancedPanel';
 import VideoPreview from '@/components/VideoGenerator/VideoPreview';
-import ModelBottomSheet from '@/components/VideoGenerator/ModelBottomSheet';
-import AdvancedBottomSheet from '@/components/VideoGenerator/AdvancedBottomSheet';
 import { VideoFormat } from '@/components/VideoGenerator/FormatSelector';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
+
+// Import de la version web
+import VideoGeneratorWeb from '@/components/VideoGenerator/VideoGeneratorWeb';
 
 // Generate a valid UUIDv4
 const generateUUIDv4 = (): string => {
@@ -35,24 +36,37 @@ const generateUUIDv4 = (): string => {
   });
 };
 
+// Interface pour ModelOption
+interface ModelOption {
+  id: string;
+  name: string;
+  description: string;
+  model: string;
+  duration: number;
+  logo?: string;
+  supportedFormats: VideoFormat[];
+}
+
 // Configuration des modèles IA
 const AI_MODELS: ModelOption[] = [
   {
     id: 'veo3',
-    name: 'Google Veo 3',
-    description: 'Haute qualité, réaliste',
+    name: 'veo 3.1',
+    description: 'Le modèle le plus avancé de Google pour des vidéos de haute qualité et réalistes.',
     model: 'google:3@1',
     duration: 8,
+    logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA8zWbt6KVx0QUDTkAuREl9nU6ieoiKy7nRJaqKbhaX_Gp-hhc6YuZ0HVlQCDhySuqnrSKxOmrGJlY5SqcTw7LVeJ4qv3D7wrEU9L7wu3C9-ZkUm7K9Aig4dI9FSsRrGyICQ8SiRm9t5JNe2a08IlAM9KZhAoxqS5xuiCEr7pZE6y0J1LwwkvPAV2X9I8YCYgP_FHiEHRuxYIamz0fxMUNdKDXePwubOGWsxIbezWoaKybixhiqq-KGtIh-DjB9mBnzX04kDSX8JN45',
     supportedFormats: [
       { id: 'landscape', name: 'Paysage', width: 1920, height: 1080, emoji: '🖥️' },
     ]
   },
   {
     id: 'seedance',
-    name: 'Seedance 1.0 Lite',
-    description: 'Rapide et fluide',
+    name: 'seedance',
+    description: 'Idéal pour les animations de personnages et les mouvements de danse complexes.',
     model: 'bytedance:1@1',
     duration: 6,
+    logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDEAiwNKJhny-OcBLAPfgmiwATHt4YaPFqs72zsc2I1KuHJK6SNPleIzIbqy98Fy5xV3qyC-vMNhij8XW9XTzNeryb0VCoMUvkCusVEzOu0EA4bY-rH8P71LF5T08_v2z5D-uD2-KND4Q_UiAPel63XF-iNqoECOw67bRNi7CDLYGCzuJrPOeHkGAr2VgpIppTwStRPgmJhopfAXE7_OUfer2PxCVIiZLaAYwSJaNGsjYxkwQirzufNIDjLn9vtBFH2qak_9YUgaaxy',
     supportedFormats: [
       { id: 'square', name: 'Carré', width: 960, height: 960, emoji: '⬜' },
       { id: 'landscape', name: 'Paysage', width: 1248, height: 704, emoji: '🖥️' },
@@ -61,10 +75,11 @@ const AI_MODELS: ModelOption[] = [
   },
   {
     id: 'sora2',
-    name: 'Sora 2 Pro',
-    description: 'Ultra qualité 720p',
+    name: 'sora',
+    description: 'Le modèle phare d\'OpenAI, créant des scènes imaginatives à partir de textes.',
     model: 'sora-2-pro',
     duration: 10,
+    logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCsMDUPaRKU6NkpyGXKquknSO98WjuHbTGNSt6UF9pTISi9n7I4jcrFBySYrvOSG5rJhhjwvytOHuYEhzkipPHbw8t6tfFq6mjrkXz0OV1-EDguJeasfXVh9P4sN_K_VnmWJv0JblOnRTr1OOjbLRK0zPgD9O2p6d0IE0fvtwe6vb4Dmexg2V5OnPAzBOpqEzq0avvJy7U9PwjHvlX6VKmVIiyBGXg1uM0Em5lLRHR5cL8c41_0X0UNzKE44SBaQdCoOBzcuyVlyrf8',
     supportedFormats: [
       { id: 'landscape', name: 'Paysage 720p', width: 1280, height: 720, emoji: '🖥️' },
       { id: 'portrait', name: 'Portrait 720p', width: 720, height: 1280, emoji: '📱' },
@@ -75,10 +90,21 @@ const AI_MODELS: ModelOption[] = [
 
 // Styles de vidéo
 const VIDEO_STYLES: VideoStyle[] = [
-  { id: 'realistic', name: 'Réaliste' },
-  { id: 'cinematic', name: 'Ciné' },
-  { id: 'anime', name: 'Animé' },
-  { id: 'satisfying', name: 'Satisfaisant' },
+  {
+    id: 'cinematic',
+    name: 'Cinéma',
+    thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBi20A-yT3bi-Aa7-3i-K4tffdiqPhUBtaQJhx4Qf2A1DKpKGi9krVT9ROnYbeJMMnxfbuIJAWkfsUX7vL59JV-f9ojnbDKeRz2rs6ikb4LuznQm_8LAeSy-9Q1i5Erc3kGeUM4pDJxAvo4jQUBrWhlBaNoeFKmERKOU6Od8ozzuoHs0ZvBirQ_dL43VFi16agTtlAWfjN2AY-Zar43S5L8B2wXbvGkzhvAmialDnsLsrGVnqvX24-psPFfc5mlau4w9JOhsj_1XhYj'
+  },
+  {
+    id: 'anime',
+    name: 'Anime',
+    thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCr-GjIN7IqO-UBMtxjSSHW3HCyj0rm_m2l-M-GFPDddGzYSoBuiOvoviuOIEREfvP2g0QA-64mqMXC2HmTpM0xmD0FH0WX4qVLC6BRAY_Y6qi2pwpGYnsf9__2qgNJcjwNzWSjtSaZFCjM0KWZPASVbG4v7znrsdBLr2mQ4UgGT0Svqt5-FOMcPRAd_acs17uR3CEXrhdKkVt-PVjGlfuLIF98eeM16yP7HUX5wZ1ygt4jxdfRY0XWIu-vA2YrpLcznXLVRosU2Lrl'
+  },
+  {
+    id: 'retro',
+    name: 'Rétro',
+    thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC36vgIwTjf2sOTG4-i-aZ5952oY2CpdXL4PxKrm8pw3DMExSIDSplgXkzcRGazgWM7J9GJTUEXLXkBxgNQYPir41RyzQAvENHeRQY7eX3njVu5BfH_N9VqG2R7fbyQRDVhcckR-W6Gsr3TbvBwOjuNNNxtwxxQiQOjpCx5zt5SGhcOeyKijRhKvFJaIeMYbH0YOm7g3fpvcoU7cG3iHwpkruHUkltJ4EYd4ZbXAddipA_DRjhokgf8gbNHtO8fsoUO5RxmlAWbHFiN'
+  },
 ];
 
 interface GeneratedVideo {
@@ -92,8 +118,13 @@ interface GeneratedVideo {
 }
 
 export default function VideoGeneratorScreen() {
+  // Si on est sur le web, utiliser la version web pure
+  if (Platform.OS === 'web') {
+    return <VideoGeneratorWeb />;
+  }
+
   // États principaux
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState('Un astronaute surfant sur une vague cosmique...');
   const [selectedModel, setSelectedModel] = useState<ModelOption>(AI_MODELS[0]);
   const [selectedFormat, setSelectedFormat] = useState<VideoFormat>(AI_MODELS[0].supportedFormats[0]);
   const [advancedSheetVisible, setAdvancedSheetVisible] = useState(false);
@@ -104,6 +135,7 @@ export default function VideoGeneratorScreen() {
   const [generatedVideo, setGeneratedVideo] = useState<GeneratedVideo | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [selectedQuality, setSelectedQuality] = useState('Standard');
 
   // Service de génération vidéo
   const videoService = useRef<VideoGenerationService | null>(null);
@@ -172,6 +204,7 @@ export default function VideoGeneratorScreen() {
     if (model.supportedFormats.length > 0) {
       setSelectedFormat(model.supportedFormats[0]);
     }
+    setModelSheetVisible(false);
   };
 
   // Handler pour "Me faire la surprise"
@@ -206,7 +239,7 @@ export default function VideoGeneratorScreen() {
       return;
     }
 
-    // Animation du bouton Créer au clic - amélioration avec glow fluide
+    // Animation du bouton Créer au clic
     Animated.parallel([
       Animated.sequence([
         Animated.timing(createButtonScale, {
@@ -356,333 +389,334 @@ export default function VideoGeneratorScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* En-tête avec bouton PRO */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Créer une vidéo</Text>
-            <TouchableOpacity style={styles.proButton} activeOpacity={0.8}>
-              <Text style={styles.proButtonText}>PRO</Text>
-            </TouchableOpacity>
+    <View className="flex-1 bg-[#000000]">
+      {/* Header */}
+      <View className="flex-row items-center justify-between p-4 bg-[#000000]/80 border-b border-white/5">
+        <View className="w-10 h-10 items-start justify-center">
+          <TouchableOpacity className="text-white/80">
+            <MaterialIcons name="arrow-back-ios" size={24} color="rgba(255,255,255,0.8)" />
+          </TouchableOpacity>
+        </View>
+        <Text className="text-white text-xl font-extrabold flex-1 text-center">Générateur Vidéo</Text>
+        <View className="w-10 items-end justify-center">
+          <View className="rounded-lg bg-[#2563EB] px-3 py-1">
+            <Text className="text-sm font-bold text-white">PRO</Text>
           </View>
         </View>
+      </View>
 
-        {/* 1️⃣ Sélecteur de modèle d'IA - Déplacé en haut */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Modèle d'IA</Text>
-          <TouchableOpacity
-            style={styles.modelDropdownButton}
-            onPress={() => setModelSheetVisible(true)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.modelDropdownContent}>
-              <View style={styles.modelDropdownLeft}>
-                <Text style={styles.modelDropdownIcon}>🎬</Text>
+      <ScrollView className="flex-1 px-4 pb-4" showsVerticalScrollIndicator={false}>
+        <View className="pt-4 space-y-4">
+          {/* Modèle d'IA */}
+          <View>
+            <Text className="text-white text-base font-bold mb-3 px-1">Modèle d'IA</Text>
+            <TouchableOpacity
+              className="flex-row items-center justify-between rounded-xl bg-[#1A1A1A] p-4 border border-white/10"
+              onPress={() => setModelSheetVisible(true)}
+              activeOpacity={0.8}
+            >
+              <View className="flex-row items-center gap-3">
+                {selectedModel.logo && (
+                  <Image
+                    source={{ uri: selectedModel.logo }}
+                    className="h-8 w-8 rounded-md"
+                  />
+                )}
                 <View>
-                  <Text style={styles.modelDropdownTitle}>Text to Video</Text>
-                  <Text style={styles.modelDropdownSubtitle}>{selectedModel.name}</Text>
+                  <Text className="font-bold text-white">{selectedModel.name}</Text>
+                  <Text className="text-xs text-white/60">Google</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#9a9a9a" />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* 2️⃣ Champ d'invite avec croix d'effacement */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Invite</Text>
-          <View style={styles.promptContainer}>
-            <TextInput
-              style={styles.promptInput}
-              value={prompt}
-              onChangeText={setPrompt}
-              placeholder="Décrivez votre scène, par ex : un chat qui joue dans un jardin fleuri au coucher du soleil."
-              placeholderTextColor="#9a9a9a"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-
-            {/* Croix pour effacer le texte - petite, fine, discrète */}
-            {prompt.length > 0 && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => setPrompt('')}
-                activeOpacity={0.6}
-              >
-                <Ionicons name="close" size={14} color="#ffffff" />
-              </TouchableOpacity>
-            )}
-
-            {/* Bouton "Me faire la surprise" à l'intérieur du champ, en bas à droite */}
-            <TouchableOpacity
-              style={styles.surpriseButton}
-              onPress={handleSurpriseMe}
-              activeOpacity={0.6}
-            >
-              <Ionicons name="sparkles" size={14} color="#9a9a9a" />
+              <MaterialIcons name="unfold-more" size={20} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* 3️⃣ Ligne Paramètres avancés avec bordure */}
-        <View style={styles.advancedContainer}>
-          <TouchableOpacity
-            style={styles.advancedButton}
-            onPress={() => setAdvancedSheetVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.advancedButtonIcon}>⚙️</Text>
-            <Text style={styles.advancedButtonText}>Paramètres avancés</Text>
-            <Ionicons name="chevron-up" size={18} color="#9a9a9a" />
-          </TouchableOpacity>
-        </View>
+          {/* Invite */}
+          <View className="space-y-2">
+            <Text className="text-sm font-medium text-white px-1">Invite</Text>
+            <View className="relative rounded-lg bg-[#1A1A1A] border border-white/10 p-2">
+              <TextInput
+                className="w-full flex-1 text-gray-400 text-base bg-transparent border-0 p-2 min-h-[112px]"
+                value={prompt}
+                onChangeText={setPrompt}
+                placeholder="Décrivez votre scène..."
+                placeholderTextColor="#9a9a9a"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                style={{ color: '#ffffff' }}
+              />
+              <View className="absolute bottom-3 right-3 flex-row items-center gap-4">
+                <TouchableOpacity
+                  className="border border-white/10 rounded-full px-2 py-1 flex-row items-center gap-1.5"
+                  onPress={handleSurpriseMe}
+                  activeOpacity={0.6}
+                >
+                  <MaterialIcons name="auto-awesome" size={18} color="#ffffff" />
+                  <Text className="text-xs font-medium text-white">Me faire la surprise</Text>
+                </TouchableOpacity>
+                {prompt.length > 0 && (
+                  <TouchableOpacity
+                    className="text-gray-400"
+                    onPress={() => setPrompt('')}
+                    activeOpacity={0.6}
+                  >
+                    <MaterialIcons name="close" size={20} color="rgba(255,255,255,0.6)" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
 
-        {/* 4️⃣ Bouton Créer avec animation */}
-        <TouchableOpacity
-          onPress={handleGenerate}
-          disabled={isGenerating}
-          activeOpacity={0.8}
-        >
-          <Animated.View
-            style={[
-              styles.createButton,
-              isGenerating && styles.createButtonDisabled,
-              {
-                transform: [{ scale: createButtonScale }],
-                shadowOpacity: createButtonGlow.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.3, 0.4],
-                }),
-                shadowRadius: createButtonGlow.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [8, 20],
-                }),
-              },
-            ]}
-          >
-            <Text style={styles.createButtonText}>
-              {isGenerating ? 'Génération en cours...' : 'Créer'}
-            </Text>
-          </Animated.View>
-        </TouchableOpacity>
+          {/* Paramètres avancés */}
+          <View>
+            <TouchableOpacity
+              className="flex-row justify-between items-center rounded-xl bg-[#1A1A1A] border border-white/10 p-4 h-16"
+              onPress={() => setAdvancedSheetVisible(true)}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center gap-3">
+                <MaterialIcons name="tune" size={20} color="rgba(255,255,255,0.8)" />
+                <Text className="text-white text-base font-bold">Paramètres avancés</Text>
+              </View>
+              <MaterialIcons name="expand-more" size={20} color="rgba(255,255,255,0.5)" />
+            </TouchableOpacity>
+          </View>
 
-        {/* 5️⃣ Bloc Aperçu - Bande-annonce du modèle + 6️⃣ Votre vidéo */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>
-            {isGenerating
-              ? 'Génération en cours...'
-              : generatedVideo
-              ? 'Votre vidéo'
-              : `Aperçu – ${selectedModel.name}`}
-          </Text>
-          <VideoPreview
-            generatedVideoUrl={generatedVideo?.url || null}
-            previewVideoUrl={undefined}
-            isGenerating={isGenerating}
-            loadingProgress={loadingProgress}
-            selectedModelName={selectedModel.name}
-            videoWidth={selectedFormat.width}
-            videoHeight={selectedFormat.height}
-            onDownload={handleDownload}
-            onShare={handleShare}
-          />
+          {/* Résultat */}
+          <View className="space-y-4">
+            <Text className="text-white text-base font-bold">Résultat</Text>
+            <VideoPreview
+              generatedVideoUrl={generatedVideo?.url || null}
+              previewVideoUrl={undefined}
+              isGenerating={isGenerating}
+              loadingProgress={loadingProgress}
+              selectedModelName={selectedModel.name}
+              videoWidth={selectedFormat.width}
+              videoHeight={selectedFormat.height}
+              onDownload={handleDownload}
+              onShare={handleShare}
+            />
+          </View>
         </View>
       </ScrollView>
 
-      {/* Model Bottom Sheet */}
-      <ModelBottomSheet
-        visible={modelSheetVisible}
-        selectedModel={selectedModel}
-        models={AI_MODELS}
-        onSelectModel={handleModelChange}
-        onClose={() => setModelSheetVisible(false)}
-      />
+      {/* Bouton Créer sticky en bas */}
+      <View className="bg-[#000000]/80 pb-4">
+        <View className="px-4 py-3">
+          <TouchableOpacity
+            onPress={handleGenerate}
+            disabled={isGenerating}
+            activeOpacity={0.8}
+          >
+            <Animated.View
+              className="w-full rounded-full h-16 bg-[#2563EB] items-center justify-center shadow-lg"
+              style={{
+                transform: [{ scale: createButtonScale }],
+              }}
+            >
+              <Text className="text-white text-xl font-bold">
+                {isGenerating ? 'Génération en cours...' : 'Créer'}
+              </Text>
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      {/* Advanced Parameters Bottom Sheet */}
-      <AdvancedBottomSheet
+      {/* Model Bottom Sheet */}
+      <Modal
+        visible={modelSheetVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModelSheetVisible(false)}
+      >
+        <View className="flex-1 bg-black/60">
+          <TouchableOpacity
+            className="flex-1"
+            activeOpacity={1}
+            onPress={() => setModelSheetVisible(false)}
+          />
+          <View className="h-[70vh] rounded-t-3xl bg-gradient-to-b from-[#0B0B0D] to-[#141418]" style={{ backgroundColor: '#0B0B0D' }}>
+            <View className="p-4">
+              <View className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
+            </View>
+            <View className="px-5 pb-5">
+              <Text className="text-white text-lg font-bold">Modèle d'IA</Text>
+            </View>
+            <ScrollView className="flex-1 px-5 pb-8">
+              {AI_MODELS.map((model, index) => (
+                <TouchableOpacity
+                  key={model.id}
+                  className={`w-full rounded-xl p-4 mb-4 ${
+                    selectedModel.id === model.id
+                      ? 'border-2 border-[#3B82F6] bg-white/10'
+                      : 'border-2 border-transparent bg-[#1C1C1E]'
+                  }`}
+                  onPress={() => handleModelChange(model)}
+                  activeOpacity={0.8}
+                >
+                  <View className="flex-row items-start gap-4">
+                    {model.logo && (
+                      <Image
+                        source={{ uri: model.logo }}
+                        className="h-10 w-10 rounded-lg"
+                      />
+                    )}
+                    <View className="flex-1">
+                      <Text className="text-base font-bold text-white">{model.name}</Text>
+                      <Text className="mt-1 text-sm text-white/60">{model.description}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Advanced Bottom Sheet */}
+      <Modal
         visible={advancedSheetVisible}
-        selectedStyle={selectedStyle}
-        videoStyles={VIDEO_STYLES}
-        onSelectStyle={setSelectedStyle}
-        formats={selectedModel.supportedFormats}
-        selectedFormat={selectedFormat}
-        onSelectFormat={setSelectedFormat}
-        onImportImage={handleImportImage}
-        referenceImagePreview={referenceImagePreview}
-        onRemoveImage={handleRemoveReferenceImage}
-        onClose={() => setAdvancedSheetVisible(false)}
-      />
-    </SafeAreaView>
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setAdvancedSheetVisible(false)}
+      >
+        <View className="flex-1 bg-black/60">
+          <TouchableOpacity
+            className="flex-1"
+            activeOpacity={1}
+            onPress={() => setAdvancedSheetVisible(false)}
+          />
+          <View className="h-[70vh] rounded-t-3xl" style={{ backgroundColor: '#0B0B0D' }}>
+            <View className="p-4">
+              <View className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
+            </View>
+            <ScrollView className="flex-1 px-5 pb-8">
+              <View className="space-y-4">
+                {/* Upload Photo */}
+                <TouchableOpacity
+                  className="flex-col items-center justify-center rounded-2xl bg-[#1C1C1E] border border-white/10 p-6 h-40"
+                  onPress={handleImportImage}
+                  activeOpacity={0.6}
+                >
+                  {referenceImagePreview ? (
+                    <View className="relative w-full h-full">
+                      <Image
+                        source={{ uri: referenceImagePreview }}
+                        className="w-full h-full rounded-lg"
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity
+                        className="absolute top-2 right-2 bg-black/50 rounded-full p-2"
+                        onPress={handleRemoveReferenceImage}
+                      >
+                        <MaterialIcons name="close" size={20} color="#ffffff" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <>
+                      <MaterialIcons name="cloud-upload" size={40} color="rgba(255,255,255,0.5)" />
+                      <Text className="text-white/70 text-sm text-center mt-2">
+                        Appuyez ici pour uploader la photo à laquelle vous voulez donner vie !
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                {/* Format */}
+                <View className="flex-row items-center justify-between rounded-xl bg-[#1C1C1E] border border-white/10 p-4 h-16">
+                  <View className="flex-row items-center gap-3">
+                    <MaterialIcons name="aspect-ratio" size={20} color="#A855F7" />
+                    <Text className="text-base font-medium text-white/90">Format</Text>
+                  </View>
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      className={`px-4 py-1.5 rounded-lg ${
+                        selectedFormat.id === 'portrait' ? 'bg-white/10' : 'bg-black border border-white/10'
+                      }`}
+                      onPress={() => {
+                        const portraitFormat = selectedModel.supportedFormats.find(f => f.id === 'portrait');
+                        if (portraitFormat) setSelectedFormat(portraitFormat);
+                      }}
+                    >
+                      <Text className="text-sm text-white/80">9:16</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className={`px-4 py-1.5 rounded-lg ${
+                        selectedFormat.id === 'landscape' ? 'bg-white/10' : 'bg-black border border-white/10'
+                      }`}
+                      onPress={() => {
+                        const landscapeFormat = selectedModel.supportedFormats.find(f => f.id === 'landscape');
+                        if (landscapeFormat) setSelectedFormat(landscapeFormat);
+                      }}
+                    >
+                      <Text className="text-sm text-white/80">16:9</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Qualité */}
+                <View className="flex-row items-center justify-between rounded-xl bg-[#1C1C1E] border border-white/10 p-4 h-16">
+                  <View className="flex-row items-center gap-3">
+                    <MaterialIcons name="tune" size={20} color="#A855F7" />
+                    <Text className="text-base font-medium text-white/90">Qualité</Text>
+                  </View>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-base font-medium text-white/90">{selectedQuality}</Text>
+                    <MaterialIcons name="unfold-more" size={20} color="rgba(255,255,255,0.5)" />
+                  </View>
+                </View>
+
+                {/* Style */}
+                <View>
+                  <View className="flex-row justify-between items-center mb-3">
+                    <Text className="text-white text-base font-bold">Style</Text>
+                    <TouchableOpacity className="flex-row items-center gap-1">
+                      <Text className="text-sm font-medium text-[#A855F7]/80">Tout voir</Text>
+                      <MaterialIcons name="arrow-forward-ios" size={14} color="rgba(168,85,247,0.8)" />
+                    </TouchableOpacity>
+                  </View>
+                  <View className="flex-row gap-3">
+                    {VIDEO_STYLES.map((style) => (
+                      <TouchableOpacity
+                        key={style.id}
+                        className={`relative rounded-xl overflow-hidden flex-1 aspect-[3/4] ${
+                          selectedStyle.id === style.id
+                            ? 'border-2 border-[#3B82F6]'
+                            : 'border-2 border-transparent'
+                        }`}
+                        onPress={() => setSelectedStyle(style)}
+                        activeOpacity={0.8}
+                      >
+                        {style.thumbnail && (
+                          <Image
+                            source={{ uri: style.thumbnail }}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                        <Text className="absolute bottom-3 left-0 right-0 text-white text-sm font-bold text-center px-2">
+                          {style.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Bouton Appliquer */}
+                <TouchableOpacity
+                  className="w-full rounded-lg h-12 bg-[#1A1A1A] items-center justify-center border border-white/15 mt-6"
+                  onPress={() => setAdvancedSheetVisible(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text className="text-white text-base font-semibold">Appliquer</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0b0b0d',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 32,
-  },
-  header: {
-    marginBottom: 18,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.3,
-  },
-  proButton: {
-    backgroundColor: '#2d7dff',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 18,
-  },
-  proButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.5,
-  },
-  section: {
-    marginBottom: 10,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 8,
-    opacity: 0.9,
-  },
-  promptContainer: {
-    position: 'relative',
-    backgroundColor: '#161618',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    minHeight: 350,
-  },
-  promptInput: {
-    padding: 19,
-    paddingBottom: 48,
-    fontSize: 16,
-    color: '#ffffff',
-    minHeight: 350,
-    textAlignVertical: 'top',
-  },
-  clearButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(140, 140, 140, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  surpriseButton: {
-    position: 'absolute',
-    bottom: 12,
-    right: 16,
-    width: 25,
-    height: 25,
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modelDropdownButton: {
-    backgroundColor: '#161618',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  modelDropdownContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  modelDropdownLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  modelDropdownIcon: {
-    fontSize: 24,
-  },
-  modelDropdownTitle: {
-    fontSize: 12,
-    color: '#9a9a9a',
-    marginBottom: 2,
-  },
-  modelDropdownSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  advancedContainer: {
-    marginTop: 6,
-    marginBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#2a2a2c',
-    paddingTop: 10,
-  },
-  advancedButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  advancedButtonIcon: {
-    fontSize: 16,
-  },
-  advancedButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#ffffff',
-    flex: 1,
-    textAlign: 'center',
-    marginLeft: -18,
-  },
-  createButton: {
-    backgroundColor: '#2d7dff',
-    borderRadius: 22,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#2d7dff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  createButtonDisabled: {
-    opacity: 0.6,
-  },
-  createButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-});
