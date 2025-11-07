@@ -1,12 +1,38 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Redirect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { authService } from '@/services/auth';
 
 export default function Index() {
-  // Rediriger immédiatement vers les tabs
-  // Le _layout.tsx gérera la redirection vers login si nécessaire
-  return <Redirect href="/(tabs)" />;
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const isAuthenticated = await authService.isAuthenticated();
+
+      if (isAuthenticated) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/auth/login');
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      router.replace('/auth/login');
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color="#007AFF" />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
